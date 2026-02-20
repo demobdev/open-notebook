@@ -138,4 +138,4 @@ specs/
 
 
 *.local.yml
-**/*.local.md
+**/*.local.md.env.local
