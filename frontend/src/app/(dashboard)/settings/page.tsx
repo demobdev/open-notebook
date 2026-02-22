@@ -14,10 +14,10 @@ export default function SettingsPage() {
   return (
     <AppShell>
       <div className="flex-1 overflow-y-auto">
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className="max-w-4xl">
-            <div className="flex items-center gap-4 mb-6">
-              <h1 className="text-2xl font-bold">{t.navigation.settings}</h1>
+            <div className="flex items-center gap-3 mb-4 sm:mb-6">
+              <h1 className="text-xl sm:text-2xl font-bold">{t.navigation.settings}</h1>
               <Button variant="outline" size="sm" onClick={() => refetch()}>
                 <RefreshCw className="h-4 w-4" />
               </Button>

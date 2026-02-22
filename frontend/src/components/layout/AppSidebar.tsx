@@ -76,12 +76,18 @@ const getNavigation = (t: TranslationKeys) => [
 
 type CreateTarget = 'source' | 'notebook' | 'podcast'
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  onNavigate?: () => void
+  forceMobileView?: boolean
+}
+
+export function AppSidebar({ onNavigate, forceMobileView }: AppSidebarProps = {}) {
   const { t } = useTranslation()
   const navigation = getNavigation(t)
   const pathname = usePathname()
   const { logout } = useAuth()
-  const { isCollapsed, toggleCollapse } = useSidebarStore()
+  const { isCollapsed: storedCollapsed, toggleCollapse } = useSidebarStore()
+  const isCollapsed = forceMobileView ? false : storedCollapsed
   const { openSourceDialog, openNotebookDialog, openPodcastDialog } = useCreateDialogs()
 
   const [createMenuOpen, setCreateMenuOpen] = useState(false)
@@ -144,15 +150,17 @@ export function AppSidebar() {
                   {t.common.appName}
                 </span>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleCollapse}
-                className="text-sidebar-foreground hover:bg-sidebar-accent"
-                data-testid="sidebar-toggle"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
+              {!forceMobileView && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleCollapse}
+                  className="text-sidebar-foreground hover:bg-sidebar-accent"
+                  data-testid="sidebar-toggle"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              )}
             </>
           )}
         </div>
@@ -272,7 +280,7 @@ export function AppSidebar() {
                     return (
                       <Tooltip key={item.name}>
                         <TooltipTrigger asChild>
-                          <Link href={item.href}>
+                          <Link href={item.href} onClick={onNavigate}>
                             {button}
                           </Link>
                         </TooltipTrigger>
@@ -282,7 +290,7 @@ export function AppSidebar() {
                   }
 
                   return (
-                    <Link key={item.name} href={item.href}>
+                    <Link key={item.name} href={item.href} onClick={onNavigate}>
                       {button}
                     </Link>
                   )

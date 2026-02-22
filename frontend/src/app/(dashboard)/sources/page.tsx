@@ -285,9 +285,9 @@ export default function SourcesPage() {
 
   return (
     <AppShell>
-      <div className="flex flex-col h-full w-full max-w-none px-6 py-6">
-        <div className="mb-6 flex-shrink-0">
-          <h1 className="text-3xl font-bold">{t.sources.allSources}</h1>
+      <div className="flex flex-col h-full w-full max-w-none px-4 py-4 sm:px-6 sm:py-6">
+        <div className="mb-4 sm:mb-6 flex-shrink-0">
+          <h1 className="text-2xl sm:text-3xl font-bold">{t.sources.allSources}</h1>
           <p className="mt-2 text-muted-foreground">
             {t.sources.allSourcesDesc}
           </p>
