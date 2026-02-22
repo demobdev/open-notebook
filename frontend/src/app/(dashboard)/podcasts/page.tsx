@@ -16,7 +16,7 @@ export default function PodcastsPage() {
   return (
     <AppShell>
       <div className="flex-1 overflow-y-auto">
-        <div className="px-6 py-6 space-y-6">
+        <div className="px-4 py-4 sm:px-6 sm:py-6 space-y-4 sm:space-y-6">
           <header className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight">{t.podcasts.listTitle}</h1>
             <p className="text-muted-foreground">
