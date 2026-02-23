@@ -522,6 +522,8 @@ export const ruRU = {
     addContext: "Добавить контекст",
     addContextDesc: "Выберите хотя бы один источник или заметку для включения в эпизод.",
     generationFailed: "Генерация подкаста не удалась",
+    configError: "Ошибка конфигурации подкаста",
+    configWarning: "Предупреждение о конфигурации",
     speakerProfile: "Профиль говорящего",
     usesSpeakerProfile: "Использует профиль говорящего",
     sources: "Источники",

@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { useQueries, useQueryClient } from '@tanstack/react-query'
 
+import { AlertTriangle } from 'lucide-react'
 import { useNotebooks } from '@/lib/hooks/use-notebooks'
 import { useEpisodeProfiles, useGeneratePodcast } from '@/lib/hooks/use-podcasts'
+import { podcastsApi } from '@/lib/api/podcasts'
 import { chatApi } from '@/lib/api/chat'
 import { sourcesApi } from '@/lib/api/sources'
 import { notesApi } from '@/lib/api/notes'
@@ -407,6 +409,9 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
   const [isBuildingContext, setIsBuildingContext] = useState(false)
   const [tokenCount, setTokenCount] = useState<number>(0)
   const [charCount, setCharCount] = useState<number>(0)
+  const [configErrors, setConfigErrors] = useState<Array<{ field: string; message: string }>>([])
+  const [configWarnings, setConfigWarnings] = useState<Array<{ field: string; message: string }>>([])
+  const [isValidating, setIsValidating] = useState(false)
 
   const notebooksQuery = useNotebooks()
   const episodeProfilesQuery = useEpisodeProfiles()
@@ -545,6 +550,8 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
     setInstructions('')
     setTokenCount(0)
     setCharCount(0)
+    setConfigErrors([])
+    setConfigWarnings([])
   }, [])
 
   useEffect(() => {
@@ -627,6 +634,37 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
     }
     return episodeProfiles.find((profile) => profile.id === episodeProfileId)
   }, [episodeProfileId, episodeProfiles])
+
+  // Validate config when episode profile changes
+  useEffect(() => {
+    if (!selectedEpisodeProfile) {
+      setConfigErrors([])
+      setConfigWarnings([])
+      return
+    }
+
+    let cancelled = false
+    setIsValidating(true)
+
+    podcastsApi
+      .validateConfig(selectedEpisodeProfile.name, selectedEpisodeProfile.speaker_config)
+      .then((result) => {
+        if (cancelled) return
+        setConfigErrors(result.errors)
+        setConfigWarnings(result.warnings)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        console.error('Config validation failed:', err)
+        setConfigErrors([])
+        setConfigWarnings([])
+      })
+      .finally(() => {
+        if (!cancelled) setIsValidating(false)
+      })
+
+    return () => { cancelled = true }
+  }, [selectedEpisodeProfile])
 
   const selectedNotebookSummaries = useMemo(() => {
     return notebooks.map((notebook) => {
@@ -825,12 +863,24 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
         onOpenChange(false)
         resetState()
       }, 500)
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to generate podcast', error)
+
+      // Extract the real error message from Axios/FastAPI response
+      let errorMessage = t.common.refreshPage
+      const axiosError = error as { response?: { data?: { detail?: string }, status?: number }, message?: string }
+      if (axiosError?.response?.data?.detail) {
+        errorMessage = axiosError.response.data.detail
+      } else if (error instanceof Error) {
+        errorMessage = error.message
+      }
+
+      const isConfigError = axiosError?.response?.status === 400
       toast({
-        title: t.podcasts.generationFailed,
-        description: error instanceof Error ? error.message : t.common.refreshPage,
+        title: isConfigError ? t.podcasts.configError : t.podcasts.generationFailed,
+        description: errorMessage,
         variant: 'destructive',
+        duration: isConfigError ? 15000 : 5000,
       })
     } finally {
       setIsBuildingContext(false)
@@ -922,6 +972,28 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
                         <strong>{selectedEpisodeProfile.speaker_config}</strong>
                       </p>
                     )}
+                    {configErrors.length > 0 && (
+                      <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 space-y-1">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-destructive">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          {t.podcasts.configError}
+                        </div>
+                        {configErrors.map((err, i) => (
+                          <p key={i} className="text-xs text-destructive/90">{err.message}</p>
+                        ))}
+                      </div>
+                    )}
+                    {configWarnings.length > 0 && configErrors.length === 0 && (
+                      <div className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3 space-y-1">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          {t.podcasts.configWarning}
+                        </div>
+                        {configWarnings.map((w, i) => (
+                          <p key={i} className="text-xs text-amber-600/90 dark:text-amber-400/90">{w.message}</p>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -955,7 +1027,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
             <div className="flex flex-col gap-3">
               <Button
                 onClick={handleSubmit}
-                disabled={isSubmitting}
+                disabled={isSubmitting || configErrors.length > 0}
                 className="w-full"
               >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

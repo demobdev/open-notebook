@@ -522,6 +522,8 @@ export const zhCN = {
     addContext: "添加上下文",
     addContextDesc: "至少选择一个来源或笔记包含在单集中。",
     generationFailed: "播客生成失败",
+    configError: "播客配置错误",
+    configWarning: "配置警告",
     speakerProfile: "主持人简介",
     usesSpeakerProfile: "使用主持人简介",
     sources: "来源",

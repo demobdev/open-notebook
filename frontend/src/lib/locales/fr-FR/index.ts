@@ -522,6 +522,8 @@ export const frFR = {
     addContext: "Ajouter du contexte",
     addContextDesc: "Sélectionnez au moins une source ou une note à inclure dans l'épisode.",
     generationFailed: "Échec de la génération du podcast",
+    configError: "Erreur de configuration du podcast",
+    configWarning: "Avertissement de configuration",
     speakerProfile: "Profil de l'intervenant",
     usesSpeakerProfile: "Utilise le profil de l'intervenant",
     sources: "Sources",

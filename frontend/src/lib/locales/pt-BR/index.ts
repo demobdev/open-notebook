@@ -522,6 +522,8 @@ export const ptBR = {
     addContext: "Adicionar contexto",
     addContextDesc: "Selecione pelo menos uma fonte ou nota para incluir no episódio.",
     generationFailed: "Geração do podcast falhou",
+    configError: "Erro de configuração do podcast",
+    configWarning: "Aviso de configuração",
     speakerProfile: "Perfil do Locutor",
     usesSpeakerProfile: "Usa perfil de locutor",
     sources: "Fontes",

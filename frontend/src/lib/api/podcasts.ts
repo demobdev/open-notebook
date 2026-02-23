@@ -117,4 +117,16 @@ export const podcastsApi = {
     )
     return response.data
   },
+
+  validateConfig: async (episodeProfile: string, speakerProfile: string) => {
+    const response = await apiClient.post<{
+      valid: boolean
+      errors: Array<{ field: string; message: string }>
+      warnings: Array<{ field: string; message: string }>
+    }>('/podcasts/validate-config', {
+      episode_profile: episodeProfile,
+      speaker_profile: speakerProfile,
+    })
+    return response.data
+  },
 }

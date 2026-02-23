@@ -13,6 +13,8 @@ from api.podcast_service import (
     PodcastGenerationResponse,
     PodcastService,
 )
+from open_notebook.podcasts.models import EpisodeProfile, SpeakerProfile
+from open_notebook.podcasts.validation import validate_podcast_config
 
 router = APIRouter()
 
@@ -65,6 +67,8 @@ async def generate_podcast(request: Request, body: PodcastGenerationRequest):
             episode_name=body.episode_name,
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error generating podcast: {str(e)}")
         raise HTTPException(
@@ -311,3 +315,34 @@ async def delete_podcast_episode(request: Request, episode_id: str):
         raise HTTPException(
             status_code=500, detail="Failed to delete episode"
         )
+
+
+class ValidateConfigRequest(BaseModel):
+    episode_profile: str
+    speaker_profile: str
+
+
+@router.post("/podcasts/validate-config")
+async def validate_podcast_configuration(
+    request: Request, body: ValidateConfigRequest
+):
+    """
+    Pre-flight validation for podcast generation configuration.
+    Returns errors/warnings without starting a job.
+    """
+    ep = await EpisodeProfile.get_by_name(body.episode_profile)
+    if not ep:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Episode profile '{body.episode_profile}' not found",
+        )
+
+    sp = await SpeakerProfile.get_by_name(body.speaker_profile)
+    if not sp:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Speaker profile '{body.speaker_profile}' not found",
+        )
+
+    result = validate_podcast_config(ep.model_dump(), sp.model_dump())
+    return result.to_dict()

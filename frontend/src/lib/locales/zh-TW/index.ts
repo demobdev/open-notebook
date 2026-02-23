@@ -522,6 +522,8 @@ export const zhTW = {
     addContext: "新增上下文",
     addContextDesc: "至少選擇一個來源或筆記包含在單集中。",
     generationFailed: "播客生成失敗",
+    configError: "播客配置錯誤",
+    configWarning: "配置警告",
     speakerProfile: "主持人簡介",
     usesSpeakerProfile: "使用主持人簡介",
     sources: "來源",

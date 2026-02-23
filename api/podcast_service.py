@@ -7,6 +7,7 @@ from surreal_commands import get_command_status, submit_command
 
 from open_notebook.domain.notebook import Notebook
 from open_notebook.podcasts.models import EpisodeProfile, PodcastEpisode, SpeakerProfile
+from open_notebook.podcasts.validation import validate_podcast_config
 
 
 class PodcastGenerationRequest(BaseModel):
@@ -54,6 +55,24 @@ class PodcastService:
             speaker_profile = await SpeakerProfile.get_by_name(speaker_profile_name)
             if not speaker_profile:
                 raise ValueError(f"Speaker profile '{speaker_profile_name}' not found")
+
+            # Pre-flight validation: catch config mismatches before submitting job
+            validation = validate_podcast_config(
+                episode_profile.model_dump(),
+                speaker_profile.model_dump(),
+            )
+            if validation.has_errors:
+                error_detail = validation.error_summary()
+                logger.warning(
+                    f"Podcast config validation failed: {error_detail}"
+                )
+                raise HTTPException(
+                    status_code=400,
+                    detail=error_detail,
+                )
+            if validation.has_warnings:
+                for w in validation.warnings:
+                    logger.warning(f"Podcast config warning: [{w.field}] {w.message}")
 
             # Get content from notebook if not provided directly
             if not content and notebook_id:

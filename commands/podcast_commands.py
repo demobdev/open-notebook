@@ -87,6 +87,22 @@ async def generate_podcast_command(
         logger.info(f"Loaded episode profile: {episode_profile.name}")
         logger.info(f"Loaded speaker profile: {speaker_profile.name}")
 
+        # 2b. Validate configuration before proceeding
+        from open_notebook.podcasts.validation import validate_podcast_config
+
+        validation = validate_podcast_config(
+            episode_profile.model_dump(),
+            speaker_profile.model_dump(),
+        )
+        if validation.has_errors:
+            error_detail = validation.error_summary()
+            logger.error(f"Podcast config validation failed: {error_detail}")
+            raise ValueError(
+                f"Configuration error: {error_detail}"
+            )
+        for w in validation.warnings:
+            logger.warning(f"Config warning: [{w.field}] {w.message}")
+
         # 3. Load all profiles and configure podcast-creator
         episode_profiles = await repo_query("SELECT * FROM episode_profile")
         speaker_profiles = await repo_query("SELECT * FROM speaker_profile")

@@ -526,6 +526,8 @@ export const enUS = {
     addContext: "Add context",
     addContextDesc: "Select at least one source or note to include in the episode.",
     generationFailed: "Podcast generation failed",
+    configError: "Podcast configuration error",
+    configWarning: "Configuration warning",
     speakerProfile: "Speaker Profile",
     usesSpeakerProfile: "Uses speaker profile",
     sources: "Sources",

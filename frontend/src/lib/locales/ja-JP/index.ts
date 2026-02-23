@@ -522,6 +522,8 @@ export const jaJP = {
     addContext: "コンテキストを追加",
     addContextDesc: "エピソードに含めるソースまたはノートを少なくとも1つ選択してください。",
     generationFailed: "ポッドキャスト生成に失敗しました",
+    configError: "ポッドキャスト設定エラー",
+    configWarning: "設定の警告",
     speakerProfile: "スピーカープロファイル",
     usesSpeakerProfile: "スピーカープロファイルを使用",
     sources: "ソース",

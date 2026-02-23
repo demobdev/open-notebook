@@ -522,6 +522,8 @@ export const itIT = {
     addContext: "Aggiungi contesto",
     addContextDesc: "Seleziona almeno una fonte o nota da includere nell'episodio.",
     generationFailed: "Generazione podcast fallita",
+    configError: "Errore di configurazione podcast",
+    configWarning: "Avviso di configurazione",
     speakerProfile: "Profilo Speaker",
     usesSpeakerProfile: "Usa profilo speaker",
     sources: "Fonti",
