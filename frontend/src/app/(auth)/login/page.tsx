@@ -1,10 +1,5 @@
-import { LoginForm } from '@/components/auth/LoginForm'
-import { ErrorBoundary } from '@/components/common/ErrorBoundary'
+import { redirect } from 'next/navigation'
 
 export default function LoginPage() {
-  return (
-    <ErrorBoundary>
-      <LoginForm />
-    </ErrorBoundary>
-  )
+  redirect('/sign-in')
 }

@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { useAuth } from '@/lib/hooks/use-auth'
+import { useClerk, UserButton } from '@clerk/nextjs'
 import { useSidebarStore } from '@/lib/stores/sidebar-store'
 import { useCreateDialogs } from '@/lib/hooks/use-create-dialogs'
 import {
@@ -85,7 +85,7 @@ export function AppSidebar({ onNavigate, forceMobileView }: AppSidebarProps = {}
   const { t } = useTranslation()
   const navigation = getNavigation(t)
   const pathname = usePathname()
-  const { logout } = useAuth()
+  const { signOut } = useClerk()
   const { isCollapsed: storedCollapsed, toggleCollapse } = useSidebarStore()
   const isCollapsed = forceMobileView ? false : storedCollapsed
   const { openSourceDialog, openNotebookDialog, openPodcastDialog } = useCreateDialogs()
@@ -357,31 +357,31 @@ export function AppSidebar({ onNavigate, forceMobileView }: AppSidebarProps = {}
             )}
           </div>
 
-          {isCollapsed ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-center sidebar-menu-item"
-                  onClick={logout}
-                  aria-label={t.common.signOut}
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-               <TooltipContent side="right">{t.common.signOut}</TooltipContent>
-            </Tooltip>
-          ) : (
-            <Button
-              variant="outline"
-              className="w-full justify-start gap-3 sidebar-menu-item"
-              onClick={logout}
-              aria-label={t.common.signOut}
-             >
-              <LogOut className="h-4 w-4" />
-              {t.common.signOut}
-            </Button>
-          )}
+          <div className={cn(
+            'flex items-center',
+            isCollapsed ? 'justify-center' : 'gap-3'
+          )}>
+            <UserButton
+              afterSignOutUrl="/sign-in"
+              appearance={{
+                elements: {
+                  avatarBox: 'h-8 w-8',
+                },
+              }}
+            />
+            {!isCollapsed && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 justify-start gap-2 sidebar-menu-item"
+                onClick={() => signOut({ redirectUrl: '/sign-in' })}
+                aria-label={t.common.signOut}
+              >
+                <LogOut className="h-4 w-4" />
+                {t.common.signOut}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </TooltipProvider>
