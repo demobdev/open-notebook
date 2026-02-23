@@ -820,11 +820,6 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
 
       await generatePodcast.mutateAsync(payload)
 
-      toast({
-        title: t.common.success,
-        description: t.podcasts.podcastTaskStarted,
-      })
-
       // Delay closing dialog slightly to ensure refetch completes
       setTimeout(() => {
         onOpenChange(false)
@@ -964,7 +959,11 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
                 className="w-full"
               >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSubmitting ? t.podcasts.generating : t.podcasts.generate}
+                {isBuildingContext
+                  ? t.podcasts.buildingContext
+                  : generatePodcast.isPending
+                    ? t.podcasts.generating
+                    : t.podcasts.generate}
               </Button>
               <Button
                 variant="outline"

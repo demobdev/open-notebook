@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast as sonnerToast } from 'sonner'
 
 import { podcastsApi, EpisodeProfileInput, SpeakerProfileInput } from '@/lib/api/podcasts'
 import { QUERY_KEYS } from '@/lib/api/query-client'
@@ -8,6 +9,7 @@ import { useTranslation } from '@/lib/hooks/use-translation'
 import { getApiErrorKey } from '@/lib/utils/error-handler'
 import {
   ACTIVE_EPISODE_STATUSES,
+  FAILED_EPISODE_STATUSES,
   EpisodeProfile,
   EpisodeStatusGroups,
   PodcastEpisode,
@@ -33,6 +35,8 @@ function hasActiveEpisodes(episodes: PodcastEpisode[]) {
 
 export function usePodcastEpisodes(options?: { autoRefresh?: boolean }) {
   const { autoRefresh = true } = options ?? {}
+  const { t } = useTranslation()
+  const prevStatusMap = useRef<Record<string, string>>({})
 
   const query = useQuery({
     queryKey: QUERY_KEYS.podcastEpisodes,
@@ -47,11 +51,39 @@ export function usePodcastEpisodes(options?: { autoRefresh?: boolean }) {
         return false
       }
 
-      return hasActiveEpisodes(data) ? 15_000 : false
+      return hasActiveEpisodes(data) ? 10_000 : false
     },
   })
 
   const episodes = useMemo(() => query.data ?? [], [query.data])
+
+  useEffect(() => {
+    if (!episodes.length) return
+
+    const prev = prevStatusMap.current
+    for (const ep of episodes) {
+      const status = ep.job_status ?? 'unknown'
+      const prevStatus = prev[ep.id]
+
+      if (prevStatus && ACTIVE_EPISODE_STATUSES.includes(prevStatus)) {
+        if (status === 'completed') {
+          sonnerToast.success(t.podcasts.podcastReady, {
+            description: t.podcasts.podcastReadyDesc,
+          })
+        } else if (FAILED_EPISODE_STATUSES.includes(status)) {
+          sonnerToast.error(t.podcasts.podcastFailed, {
+            description: t.podcasts.podcastFailedDesc,
+          })
+        }
+      }
+    }
+
+    const next: Record<string, string> = {}
+    for (const ep of episodes) {
+      next[ep.id] = ep.job_status ?? 'unknown'
+    }
+    prevStatusMap.current = next
+  }, [episodes, t])
 
   const statusGroups = useMemo<EpisodeStatusGroups>(
     () => groupEpisodesByStatus(episodes),

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { SourceListResponse } from '@/lib/types/api'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -25,6 +25,7 @@ import {
   Loader2,
   Unlink
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { useSourceStatus } from '@/lib/hooks/use-sources'
 import { useTranslation } from '@/lib/hooks/use-translation'
 import { TranslationKeys } from '@/lib/locales'
@@ -125,47 +126,56 @@ export function SourceCard({
   // Only fetch status for sources that might have async processing
   const sourceWithStatus = source as SourceListResponse & { command_id?: string; status?: string }
 
-  // Track processing state to continue polling until we detect completion
   const [wasProcessing, setWasProcessing] = useState(false)
+  const hasNotified = useRef(false)
 
   const shouldFetchStatus = !!sourceWithStatus.command_id ||
     sourceWithStatus.status === 'new' ||
     sourceWithStatus.status === 'queued' ||
     sourceWithStatus.status === 'running' ||
-    wasProcessing // Keep polling if we were processing to catch the completion
+    wasProcessing
 
   const { data: statusData, isLoading: statusLoading } = useSourceStatus(
     source.id,
     shouldFetchStatus
   )
 
-  // Determine current status
-  // If source has a command_id but no status, treat as "new" (just created)
   const rawStatus = statusData?.status || sourceWithStatus.status
   const currentStatus: SourceStatus = isSourceStatus(rawStatus)
     ? rawStatus
     : (sourceWithStatus.command_id ? 'new' : 'completed')
 
-
-  // Track processing state and detect completion
   useEffect(() => {
     const currentStatusFromData = statusData?.status || sourceWithStatus.status
 
-    // If we're currently processing, mark that we were processing
     if (currentStatusFromData === 'new' || currentStatusFromData === 'running' || currentStatusFromData === 'queued') {
       setWasProcessing(true)
+      hasNotified.current = false
     }
 
-    // If we were processing and now completed/failed, trigger refresh and stop polling
     if (wasProcessing &&
         (currentStatusFromData === 'completed' || currentStatusFromData === 'failed')) {
-      setWasProcessing(false) // Stop polling
+      setWasProcessing(false)
+
+      if (!hasNotified.current) {
+        hasNotified.current = true
+        const title = source.title || t.sources.untitledSource
+        if (currentStatusFromData === 'completed') {
+          toast.success(t.sources.sourceReady, {
+            description: t.sources.sourceReadyDesc.replace('{title}', title),
+          })
+        } else {
+          toast.error(t.sources.sourceFailed, {
+            description: t.sources.sourceFailedDesc.replace('{title}', title),
+          })
+        }
+      }
 
       if (onRefresh) {
-        setTimeout(() => onRefresh(), 500) // Small delay to ensure API is updated
+        setTimeout(() => onRefresh(), 500)
       }
     }
-  }, [statusData, sourceWithStatus.status, wasProcessing, onRefresh, source.id])
+  }, [statusData, sourceWithStatus.status, wasProcessing, onRefresh, source.id, source.title, t])
   
   const statusConfig = statusConfigMap[currentStatus] || statusConfigMap.completed
   const StatusIcon = statusConfig.icon
