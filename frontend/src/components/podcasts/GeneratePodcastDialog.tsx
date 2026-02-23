@@ -880,7 +880,6 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
         title: isConfigError ? t.podcasts.configError : t.podcasts.generationFailed,
         description: errorMessage,
         variant: 'destructive',
-        duration: isConfigError ? 15000 : 5000,
       })
     } finally {
       setIsBuildingContext(false)
