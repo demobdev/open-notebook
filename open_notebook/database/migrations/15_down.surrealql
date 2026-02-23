@@ -1,0 +1,3 @@
+-- Rollback migration 15: Revert episode profiles back to gpt-5-mini
+UPDATE episode_profile SET outline_model = "gpt-5-mini" WHERE outline_model = "gpt-5.2";
+UPDATE episode_profile SET transcript_model = "gpt-5-mini" WHERE transcript_model = "gpt-5.2";

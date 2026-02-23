@@ -1,0 +1,6 @@
+-- Migration 15: Update episode profiles from gpt-5-mini to gpt-5.2
+-- gpt-5-mini uses extended thinking (<think> tags) which breaks
+-- podcast-creator's JSON output parsing
+
+UPDATE episode_profile SET outline_model = "gpt-5.2" WHERE outline_model = "gpt-5-mini";
+UPDATE episode_profile SET transcript_model = "gpt-5.2" WHERE transcript_model = "gpt-5-mini";
