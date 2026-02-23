@@ -1,0 +1,57 @@
+-- Rollback migration 17: Revert speaker profiles to OpenAI TTS
+UPDATE speaker_profile SET 
+    tts_provider = "openai",
+    tts_model = "tts-1-hd",
+    speakers = [
+        {
+            name: "Dr. Alex Chen",
+            voice_id: "nova",
+            backstory: "Senior AI researcher and former tech lead at major companies. Specializes in making complex technical concepts accessible.",
+            personality: "Analytical, clear communicator, asks probing questions to dig deeper into technical details"
+        },
+        {
+            name: "Jamie Rodriguez",
+            voice_id: "alloy",
+            backstory: "Full-stack engineer and tech entrepreneur. Loves practical applications and real-world implementations.",
+            personality: "Enthusiastic, practical-minded, great at explaining implementation details and trade-offs"
+        }
+    ]
+WHERE name = "tech_experts";
+
+UPDATE speaker_profile SET 
+    tts_provider = "openai",
+    tts_model = "tts-1-hd",
+    speakers = [
+        {
+            name: "Professor Sarah Kim",
+            voice_id: "nova",
+            backstory: "Distinguished professor and researcher. Has a gift for making complex topics accessible to broad audiences.",
+            personality: "Patient teacher, uses analogies and examples, breaks down complex concepts step by step"
+        }
+    ]
+WHERE name = "solo_expert";
+
+UPDATE speaker_profile SET 
+    tts_provider = "openai",
+    tts_model = "tts-1-hd",
+    speakers = [
+        {
+            name: "Marcus Thompson",
+            voice_id: "echo",
+            backstory: "Former McKinsey consultant, now startup advisor. Expert in strategic analysis and market dynamics.",
+            personality: "Strategic thinker, data-driven, excellent at identifying key insights and implications"
+        },
+        {
+            name: "Elena Vasquez",
+            voice_id: "shimmer",
+            backstory: "Serial entrepreneur and investor. Focuses on practical implementation and execution.",
+            personality: "Action-oriented, pragmatic, brings startup experience and execution focus"
+        },
+        {
+            name: "Johny Bing",
+            voice_id: "ash",
+            backstory: "Youtube celebrity and business mogul. Focuses on practical implementation and execution.",
+            personality: "Controversial, likes to question ideas and concepts. He brings a fresh perspective and always has a point to make."
+        }
+    ]
+WHERE name = "business_panel";
