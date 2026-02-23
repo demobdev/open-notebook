@@ -10,8 +10,11 @@ import { ConnectionGuard } from "@/components/common/ConnectionGuard";
 import { themeScript } from "@/lib/theme-script";
 import { I18nProvider } from "@/components/providers/I18nProvider";
 
-const _inter = Inter({ subsets: ["latin"] });
-const _jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"] });
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+});
 
 export const metadata: Metadata = {
   title: "Audioprism Studio | Turn Content into AI Podcasts & Research Notes",
@@ -35,7 +38,7 @@ export default function RootLayout({
         <head>
           <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         </head>
-        <body className={inter.className}>
+        <body className={`${inter.className} ${jetbrainsMono.variable}`}>
           <ErrorBoundary>
             <ThemeProvider>
               <QueryProvider>
