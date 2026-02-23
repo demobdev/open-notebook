@@ -15,6 +15,7 @@ from open_notebook.exceptions import DatabaseOperationError, InvalidInputError
 
 class Notebook(ObjectModel):
     table_name: ClassVar[str] = "notebook"
+    user_owned: ClassVar[bool] = True
     name: str
     description: str
     archived: Optional[bool] = False
@@ -289,6 +290,7 @@ class Source(ObjectModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     table_name: ClassVar[str] = "source"
+    user_owned: ClassVar[bool] = True
     asset: Optional[Asset] = None
     title: Optional[str] = None
     topics: Optional[List[str]] = Field(default_factory=list)
@@ -556,6 +558,7 @@ class Source(ObjectModel):
 
 class Note(ObjectModel):
     table_name: ClassVar[str] = "note"
+    user_owned: ClassVar[bool] = True
     title: Optional[str] = None
     note_type: Optional[Literal["human", "ai"]] = None
     content: Optional[str] = None
@@ -612,6 +615,7 @@ class Note(ObjectModel):
 
 class ChatSession(ObjectModel):
     table_name: ClassVar[str] = "chat_session"
+    user_owned: ClassVar[bool] = True
     nullable_fields: ClassVar[set[str]] = {"model_override"}
     title: Optional[str] = None
     model_override: Optional[str] = None
@@ -627,8 +631,43 @@ class ChatSession(ObjectModel):
         return await self.relate("refers_to", source_id)
 
 
+async def _filter_search_results_by_user(
+    results: List[Any], user_id: str
+) -> List[Any]:
+    """
+    Filter search results to only include items owned by the given user.
+    Results reference source (via source_embedding, source_insight, or direct) or note.
+    The parent_id indicates the owning record: source for source-related, note for notes.
+    """
+    if not results or not user_id:
+        return results
+    parent_ids = list({str(r.get("parent_id", r.get("id", ""))) for r in results})
+    source_ids = [p for p in parent_ids if p.startswith("source:")]
+    note_ids = [p for p in parent_ids if p.startswith("note:")]
+    allowed: set = set()
+    if source_ids:
+        source_rows = await repo_query(
+            "SELECT id FROM source WHERE id IN $ids AND (user_id = $user_id OR user_id IS NONE)",
+            {"ids": source_ids, "user_id": user_id},
+        )
+        if source_rows:
+            allowed.update(str(row["id"]) for row in source_rows)
+    if note_ids:
+        note_rows = await repo_query(
+            "SELECT id FROM note WHERE id IN $ids AND (user_id = $user_id OR user_id IS NONE)",
+            {"ids": note_ids, "user_id": user_id},
+        )
+        if note_rows:
+            allowed.update(str(row["id"]) for row in note_rows)
+    return [r for r in results if str(r.get("parent_id", r.get("id", ""))) in allowed]
+
+
 async def text_search(
-    keyword: str, results: int, source: bool = True, note: bool = True
+    keyword: str,
+    results: int,
+    source: bool = True,
+    note: bool = True,
+    user_id: Optional[str] = None,
 ):
     if not keyword:
         raise InvalidInputError("Search keyword cannot be empty")
@@ -640,7 +679,11 @@ async def text_search(
             """,
             {"keyword": keyword, "results": results, "source": source, "note": note},
         )
-        return search_results
+        if user_id and search_results:
+            search_results = await _filter_search_results_by_user(
+                search_results, user_id
+            )
+        return search_results or []
     except Exception as e:
         logger.error(f"Error performing text search: {str(e)}")
         logger.exception(e)
@@ -653,6 +696,7 @@ async def vector_search(
     source: bool = True,
     note: bool = True,
     minimum_score=0.2,
+    user_id: Optional[str] = None,
 ):
     if not keyword:
         raise InvalidInputError("Search keyword cannot be empty")
@@ -673,7 +717,11 @@ async def vector_search(
                 "minimum_score": minimum_score,
             },
         )
-        return search_results
+        if user_id and search_results:
+            search_results = await _filter_search_results_by_user(
+                search_results, user_id
+            )
+        return search_results or []
     except Exception as e:
         logger.error(f"Error performing vector search: {str(e)}")
         logger.exception(e)

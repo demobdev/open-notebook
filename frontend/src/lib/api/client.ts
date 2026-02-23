@@ -13,6 +13,17 @@ export function setAuthTokenProvider(provider: TokenProvider) {
   _getToken = provider
 }
 
+export async function getAuthToken(): Promise<string | null> {
+  if (_getToken) {
+    try {
+      return await _getToken()
+    } catch {
+      return null
+    }
+  }
+  return null
+}
+
 export const apiClient = axios.create({
   timeout: 600000,
   headers: {

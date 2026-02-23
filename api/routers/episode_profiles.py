@@ -1,9 +1,10 @@
 from typing import List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from loguru import logger
 from pydantic import BaseModel, Field
 
+from api.auth import check_owner, get_current_user_id, is_admin
 from open_notebook.podcasts.models import EpisodeProfile
 
 router = APIRouter()
@@ -99,8 +100,9 @@ class EpisodeProfileCreate(BaseModel):
 
 
 @router.post("/episode-profiles", response_model=EpisodeProfileResponse)
-async def create_episode_profile(profile_data: EpisodeProfileCreate):
+async def create_episode_profile(request: Request, profile_data: EpisodeProfileCreate):
     """Create a new episode profile"""
+    user_id = get_current_user_id(request)
     try:
         profile = EpisodeProfile(
             name=profile_data.name,
@@ -112,6 +114,7 @@ async def create_episode_profile(profile_data: EpisodeProfileCreate):
             transcript_model=profile_data.transcript_model,
             default_briefing=profile_data.default_briefing,
             num_segments=profile_data.num_segments,
+            user_id=user_id,
         )
 
         await profile.save()
@@ -137,8 +140,11 @@ async def create_episode_profile(profile_data: EpisodeProfileCreate):
 
 
 @router.put("/episode-profiles/{profile_id}", response_model=EpisodeProfileResponse)
-async def update_episode_profile(profile_id: str, profile_data: EpisodeProfileCreate):
+async def update_episode_profile(
+    request: Request, profile_id: str, profile_data: EpisodeProfileCreate
+):
     """Update an existing episode profile"""
+    user_id = get_current_user_id(request)
     try:
         profile = await EpisodeProfile.get(profile_id)
 
@@ -146,6 +152,8 @@ async def update_episode_profile(profile_id: str, profile_data: EpisodeProfileCr
             raise HTTPException(
                 status_code=404, detail=f"Episode profile '{profile_id}' not found"
             )
+
+        check_owner(user_id, profile)
 
         # Update fields
         profile.name = profile_data.name
@@ -209,8 +217,9 @@ async def delete_episode_profile(profile_id: str):
 @router.post(
     "/episode-profiles/{profile_id}/duplicate", response_model=EpisodeProfileResponse
 )
-async def duplicate_episode_profile(profile_id: str):
+async def duplicate_episode_profile(request: Request, profile_id: str):
     """Duplicate an episode profile"""
+    user_id = get_current_user_id(request)
     try:
         original = await EpisodeProfile.get(profile_id)
 
@@ -218,6 +227,8 @@ async def duplicate_episode_profile(profile_id: str):
             raise HTTPException(
                 status_code=404, detail=f"Episode profile '{profile_id}' not found"
             )
+
+        check_owner(user_id, original)
 
         # Create duplicate with modified name
         duplicate = EpisodeProfile(
@@ -230,6 +241,7 @@ async def duplicate_episode_profile(profile_id: str):
             transcript_model=original.transcript_model,
             default_briefing=original.default_briefing,
             num_segments=original.num_segments,
+            user_id=user_id,
         )
 
         await duplicate.save()

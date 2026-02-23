@@ -1,0 +1,14 @@
+-- Rollback migration 14: Remove user_id fields and indexes
+REMOVE INDEX idx_notebook_user ON TABLE notebook;
+REMOVE INDEX idx_source_user ON TABLE source;
+REMOVE INDEX idx_note_user ON TABLE note;
+REMOVE INDEX idx_chat_session_user ON TABLE chat_session;
+REMOVE INDEX idx_episode_user ON TABLE episode;
+REMOVE FIELD user_id ON TABLE notebook;
+REMOVE FIELD user_id ON TABLE source;
+REMOVE FIELD user_id ON TABLE note;
+REMOVE FIELD user_id ON TABLE chat_session;
+REMOVE FIELD user_id ON TABLE episode;
+REMOVE FIELD user_id ON TABLE episode_profile;
+REMOVE FIELD user_id ON TABLE speaker_profile;
+REMOVE FIELD user_id ON TABLE transformation;

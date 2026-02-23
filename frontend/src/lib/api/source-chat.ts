@@ -1,4 +1,4 @@
-import apiClient from './client'
+import apiClient, { getAuthToken } from './client'
 import {
   SourceChatSession,
   SourceChatSessionWithMessages,
@@ -45,41 +45,23 @@ export const sourceChatApi = {
     await apiClient.delete(`/sources/${sourceId}/chat/sessions/${sessionId}`)
   },
 
-  // Messaging with streaming
-  sendMessage: (sourceId: string, sessionId: string, data: SendMessageRequest) => {
-    // Get auth token using the same logic as apiClient interceptor
-    let token = null
-    if (typeof window !== 'undefined') {
-      const authStorage = localStorage.getItem('auth-storage')
-      if (authStorage) {
-        try {
-          const { state } = JSON.parse(authStorage)
-          if (state?.token) {
-            token = state.token
-          }
-        } catch (error) {
-          console.error('Error parsing auth storage:', error)
-        }
-      }
-    }
+  sendMessage: async (sourceId: string, sessionId: string, data: SendMessageRequest) => {
+    const token = await getAuthToken()
 
-    // Use relative URL to leverage Next.js rewrites
-    // This works both in dev (Next.js proxy) and production (Docker network)
     const url = `/api/sources/${sourceId}/chat/sessions/${sessionId}/messages`
 
-    // Use fetch with ReadableStream for SSE
-    return fetch(url, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` })
       },
       body: JSON.stringify(data)
-    }).then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      return response.body
     })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    return response.body
   }
 }

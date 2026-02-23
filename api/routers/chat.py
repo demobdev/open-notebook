@@ -2,7 +2,9 @@ import asyncio
 import traceback
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
+
+from api.auth import check_owner, get_current_user_id, is_admin
 from langchain_core.runnables import RunnableConfig
 from loguru import logger
 from pydantic import BaseModel, Field
@@ -94,13 +96,18 @@ class SuccessResponse(BaseModel):
 
 
 @router.get("/chat/sessions", response_model=List[ChatSessionResponse])
-async def get_sessions(notebook_id: str = Query(..., description="Notebook ID")):
+async def get_sessions(
+    request: Request,
+    notebook_id: str = Query(..., description="Notebook ID"),
+):
     """Get all chat sessions for a notebook."""
     try:
+        user_id = get_current_user_id(request)
         # Get notebook to verify it exists
         notebook = await Notebook.get(notebook_id)
         if not notebook:
             raise HTTPException(status_code=404, detail="Notebook not found")
+        check_owner(user_id, notebook)
 
         # Get sessions for this notebook
         sessions_list = await notebook.get_chat_sessions()
@@ -135,29 +142,32 @@ async def get_sessions(notebook_id: str = Query(..., description="Notebook ID"))
 
 
 @router.post("/chat/sessions", response_model=ChatSessionResponse)
-async def create_session(request: CreateSessionRequest):
+async def create_session(request: Request, body: CreateSessionRequest):
     """Create a new chat session."""
     try:
+        user_id = get_current_user_id(request)
         # Verify notebook exists
-        notebook = await Notebook.get(request.notebook_id)
+        notebook = await Notebook.get(body.notebook_id)
         if not notebook:
             raise HTTPException(status_code=404, detail="Notebook not found")
+        check_owner(user_id, notebook)
 
         # Create new session
         session = ChatSession(
-            title=request.title
+            title=body.title
             or f"Chat Session {asyncio.get_event_loop().time():.0f}",
-            model_override=request.model_override,
+            model_override=body.model_override,
+            user_id=user_id,
         )
         await session.save()
 
         # Relate session to notebook
-        await session.relate_to_notebook(request.notebook_id)
+        await session.relate_to_notebook(body.notebook_id)
 
         return ChatSessionResponse(
             id=session.id or "",
             title=session.title or "",
-            notebook_id=request.notebook_id,
+            notebook_id=body.notebook_id,
             created=str(session.created),
             updated=str(session.updated),
             message_count=0,
@@ -175,9 +185,10 @@ async def create_session(request: CreateSessionRequest):
 @router.get(
     "/chat/sessions/{session_id}", response_model=ChatSessionWithMessagesResponse
 )
-async def get_session(session_id: str):
+async def get_session(request: Request, session_id: str):
     """Get a specific session with its messages."""
     try:
+        user_id = get_current_user_id(request)
         # Get session
         # Ensure session_id has proper table prefix
         full_session_id = (
@@ -188,6 +199,7 @@ async def get_session(session_id: str):
         session = await ChatSession.get(full_session_id)
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
+        check_owner(user_id, session)
 
         # Get session state from LangGraph to retrieve messages
         # Use sync get_state() in a thread since SqliteSaver doesn't support async
@@ -248,9 +260,14 @@ async def get_session(session_id: str):
 
 
 @router.put("/chat/sessions/{session_id}", response_model=ChatSessionResponse)
-async def update_session(session_id: str, request: UpdateSessionRequest):
+async def update_session(
+    request: Request,
+    session_id: str,
+    body: UpdateSessionRequest,
+):
     """Update session title."""
     try:
+        user_id = get_current_user_id(request)
         # Ensure session_id has proper table prefix
         full_session_id = (
             session_id
@@ -260,8 +277,9 @@ async def update_session(session_id: str, request: UpdateSessionRequest):
         session = await ChatSession.get(full_session_id)
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
+        check_owner(user_id, session)
 
-        update_data = request.model_dump(exclude_unset=True)
+        update_data = body.model_dump(exclude_unset=True)
 
         if "title" in update_data:
             session.title = update_data["title"]
@@ -304,9 +322,10 @@ async def update_session(session_id: str, request: UpdateSessionRequest):
 
 
 @router.delete("/chat/sessions/{session_id}", response_model=SuccessResponse)
-async def delete_session(session_id: str):
+async def delete_session(request: Request, session_id: str):
     """Delete a chat session."""
     try:
+        user_id = get_current_user_id(request)
         # Ensure session_id has proper table prefix
         full_session_id = (
             session_id
@@ -316,6 +335,7 @@ async def delete_session(session_id: str):
         session = await ChatSession.get(full_session_id)
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
+        check_owner(user_id, session)
 
         await session.delete()
 
@@ -328,9 +348,10 @@ async def delete_session(session_id: str):
 
 
 @router.post("/chat/execute", response_model=ExecuteChatResponse)
-async def execute_chat(request: ExecuteChatRequest):
+async def execute_chat(request: Request, body: ExecuteChatRequest):
     """Execute a chat request and get AI response."""
     try:
+        user_id = get_current_user_id(request)
         # Verify session exists
         # Ensure session_id has proper table prefix
         full_session_id = (
@@ -409,21 +430,23 @@ async def execute_chat(request: ExecuteChatRequest):
 
 
 @router.post("/chat/context", response_model=BuildContextResponse)
-async def build_context(request: BuildContextRequest):
+async def build_context(request: Request, body: BuildContextRequest):
     """Build context for a notebook based on context configuration."""
     try:
+        user_id = get_current_user_id(request)
         # Verify notebook exists
-        notebook = await Notebook.get(request.notebook_id)
+        notebook = await Notebook.get(body.notebook_id)
         if not notebook:
             raise HTTPException(status_code=404, detail="Notebook not found")
+        check_owner(user_id, notebook)
 
         context_data: dict[str, list[dict[str, str]]] = {"sources": [], "notes": []}
         total_content = ""
 
         # Process context configuration if provided
-        if request.context_config:
+        if body.context_config:
             # Process sources
-            for source_id, status in request.context_config.get("sources", {}).items():
+            for source_id, status in body.context_config.get("sources", {}).items():
                 if "not in" in status:
                     continue
 
@@ -453,7 +476,7 @@ async def build_context(request: BuildContextRequest):
                     continue
 
             # Process notes
-            for note_id, status in request.context_config.get("notes", {}).items():
+            for note_id, status in body.context_config.get("notes", {}).items():
                 if "not in" in status:
                     continue
 

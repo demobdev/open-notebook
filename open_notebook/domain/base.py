@@ -31,28 +31,47 @@ T = TypeVar("T", bound="ObjectModel")
 class ObjectModel(BaseModel):
     id: Optional[str] = None
     table_name: ClassVar[str] = ""
-    nullable_fields: ClassVar[set[str]] = set()  # Fields that can be saved as None
+    nullable_fields: ClassVar[set[str]] = set()
+    user_owned: ClassVar[bool] = False
+    mixed_ownership: ClassVar[bool] = False
+    user_id: Optional[str] = None
     created: Optional[datetime] = None
     updated: Optional[datetime] = None
 
+    def check_ownership(self, user_id: str) -> bool:
+        """Return True if this record belongs to the given user (or has no owner)."""
+        if not self.user_id:
+            return True
+        return self.user_id == user_id
+
     @classmethod
-    async def get_all(cls: Type[T], order_by=None) -> List[T]:
+    async def get_all(
+        cls: Type[T], order_by=None, user_id: Optional[str] = None
+    ) -> List[T]:
         try:
-            # If called from a specific subclass, use its table_name
             if cls.table_name:
                 target_class = cls
                 table_name = cls.table_name
             else:
-                # This path is taken if called directly from ObjectModel
                 raise InvalidInputError(
                     "get_all() must be called from a specific model class"
                 )
-            if order_by:
-                query = f"SELECT * FROM {table_name} ORDER BY {order_by}"
-            else:
-                query = f"SELECT * FROM {table_name}"
 
-            result = await repo_query(query)
+            conditions: List[str] = []
+            params: Dict[str, Any] = {}
+
+            if user_id and cls.user_owned:
+                conditions.append("user_id = $user_id")
+                params["user_id"] = user_id
+            elif user_id and cls.mixed_ownership:
+                conditions.append("(user_id = $user_id OR user_id IS NONE)")
+                params["user_id"] = user_id
+
+            where_clause = f" WHERE {' AND '.join(conditions)}" if conditions else ""
+            order_clause = f" ORDER BY {order_by}" if order_by else ""
+            query = f"SELECT * FROM {table_name}{where_clause}{order_clause}"
+
+            result = await repo_query(query, params if params else None)
             objects = []
             for obj in result:
                 try:
