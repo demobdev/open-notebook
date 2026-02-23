@@ -7,6 +7,7 @@ from open_notebook.domain.base import ObjectModel, RecordModel
 
 class Transformation(ObjectModel):
     table_name: ClassVar[str] = "transformation"
+    mixed_ownership: ClassVar[bool] = True
     name: str
     title: str
     description: str

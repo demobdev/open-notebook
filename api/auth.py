@@ -210,3 +210,11 @@ def require_admin(request: Request) -> str:
     if not is_admin(user_id):
         raise HTTPException(status_code=403, detail="Admin access required")
     return user_id
+
+
+def check_owner(user_id: str, record) -> None:
+    """Raise 403 if user_id doesn't own the record (admins bypass)."""
+    if is_admin(user_id):
+        return
+    if hasattr(record, "check_ownership") and not record.check_ownership(user_id):
+        raise HTTPException(status_code=403, detail="Access denied")

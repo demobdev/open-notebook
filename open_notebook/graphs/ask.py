@@ -98,10 +98,13 @@ async def trigger_queries(state: ThreadState, config: RunnableConfig):
 async def provide_answer(state: SubGraphState, config: RunnableConfig) -> dict:
     try:
         payload = state
+        user_id = config.get("configurable", {}).get("user_id")
         # if state["type"] == "text":
         #     results = text_search(state["term"], 10, True, True)
         # else:
-        results = await vector_search(state["term"], 10, True, True)
+        results = await vector_search(
+            state["term"], 10, True, True, user_id=user_id
+        )
         if len(results) == 0:
             return {"answers": []}
         payload["results"] = results

@@ -1,0 +1,23 @@
+-- Migration 14: Add user_id for multi-tenancy
+-- Direct ownership tables
+DEFINE FIELD user_id ON TABLE notebook TYPE option<string>;
+DEFINE FIELD user_id ON TABLE source TYPE option<string>;
+DEFINE FIELD user_id ON TABLE note TYPE option<string>;
+DEFINE FIELD user_id ON TABLE chat_session TYPE option<string>;
+DEFINE FIELD user_id ON TABLE episode TYPE option<string>;
+-- Mixed ownership tables (null = system default)
+DEFINE FIELD user_id ON TABLE episode_profile TYPE option<string>;
+DEFINE FIELD user_id ON TABLE speaker_profile TYPE option<string>;
+DEFINE FIELD user_id ON TABLE transformation TYPE option<string>;
+-- Indexes for fast user-scoped queries
+DEFINE INDEX idx_notebook_user ON TABLE notebook COLUMNS user_id;
+DEFINE INDEX idx_source_user ON TABLE source COLUMNS user_id;
+DEFINE INDEX idx_note_user ON TABLE note COLUMNS user_id;
+DEFINE INDEX idx_chat_session_user ON TABLE chat_session COLUMNS user_id;
+DEFINE INDEX idx_episode_user ON TABLE episode COLUMNS user_id;
+-- Backfill all existing data to the first admin user
+UPDATE notebook SET user_id = 'user_3A308LpqDJHoW6YeVHxtLto80zi' WHERE user_id IS NONE;
+UPDATE source SET user_id = 'user_3A308LpqDJHoW6YeVHxtLto80zi' WHERE user_id IS NONE;
+UPDATE note SET user_id = 'user_3A308LpqDJHoW6YeVHxtLto80zi' WHERE user_id IS NONE;
+UPDATE chat_session SET user_id = 'user_3A308LpqDJHoW6YeVHxtLto80zi' WHERE user_id IS NONE;
+UPDATE episode SET user_id = 'user_3A308LpqDJHoW6YeVHxtLto80zi' WHERE user_id IS NONE;

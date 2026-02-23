@@ -1,8 +1,9 @@
 from typing import List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from loguru import logger
 
+from api.auth import check_owner, get_current_user_id, is_admin
 from api.models import (
     DefaultPromptResponse,
     DefaultPromptUpdate,
@@ -13,6 +14,7 @@ from api.models import (
     TransformationUpdate,
 )
 from open_notebook.ai.models import Model
+from open_notebook.domain.notebook import Source
 from open_notebook.domain.transformation import DefaultPrompts, Transformation
 from open_notebook.exceptions import InvalidInputError, OpenNotebookError
 from open_notebook.graphs.transformation import graph as transformation_graph
@@ -21,10 +23,13 @@ router = APIRouter()
 
 
 @router.get("/transformations", response_model=List[TransformationResponse])
-async def get_transformations():
+async def get_transformations(request: Request):
     """Get all transformations."""
     try:
-        transformations = await Transformation.get_all(order_by="name asc")
+        user_id = get_current_user_id(request)
+        transformations = await Transformation.get_all(
+            order_by="name asc", user_id=user_id
+        )
 
         return [
             TransformationResponse(
@@ -47,11 +52,13 @@ async def get_transformations():
 
 
 @router.post("/transformations", response_model=TransformationResponse)
-async def create_transformation(transformation_data: TransformationCreate):
+async def create_transformation(request: Request, transformation_data: TransformationCreate):
     """Create a new transformation."""
     try:
+        user_id = get_current_user_id(request)
         new_transformation = Transformation(
             name=transformation_data.name,
+            user_id=user_id,
             title=transformation_data.title,
             description=transformation_data.description,
             prompt=transformation_data.prompt,
@@ -79,13 +86,23 @@ async def create_transformation(transformation_data: TransformationCreate):
 
 
 @router.post("/transformations/execute", response_model=TransformationExecuteResponse)
-async def execute_transformation(execute_request: TransformationExecuteRequest):
+async def execute_transformation(request: Request, execute_request: TransformationExecuteRequest):
     """Execute a transformation on input text."""
     try:
+        user_id = get_current_user_id(request)
+
+        # If source_id is provided, check ownership of the source
+        source_id = getattr(execute_request, "source_id", None)
+        if source_id:
+            source = await Source.get(source_id)
+            if source:
+                check_owner(user_id, source)
+
         # Validate transformation exists
         transformation = await Transformation.get(execute_request.transformation_id)
         if not transformation:
             raise HTTPException(status_code=404, detail="Transformation not found")
+        check_owner(user_id, transformation)
 
         # Validate model exists
         model = await Model.get(execute_request.model_id)
@@ -119,9 +136,10 @@ async def execute_transformation(execute_request: TransformationExecuteRequest):
 
 
 @router.get("/transformations/default-prompt", response_model=DefaultPromptResponse)
-async def get_default_prompt():
+async def get_default_prompt(request: Request):
     """Get the default transformation prompt."""
     try:
+        user_id = get_current_user_id(request)
         default_prompts: DefaultPrompts = await DefaultPrompts.get_instance()  # type: ignore[assignment]
 
         return DefaultPromptResponse(
@@ -136,9 +154,10 @@ async def get_default_prompt():
 
 
 @router.put("/transformations/default-prompt", response_model=DefaultPromptResponse)
-async def update_default_prompt(prompt_update: DefaultPromptUpdate):
+async def update_default_prompt(request: Request, prompt_update: DefaultPromptUpdate):
     """Update the default transformation prompt."""
     try:
+        user_id = get_current_user_id(request)
         default_prompts: DefaultPrompts = await DefaultPrompts.get_instance()  # type: ignore[assignment]
 
         default_prompts.transformation_instructions = (
@@ -159,12 +178,14 @@ async def update_default_prompt(prompt_update: DefaultPromptUpdate):
 @router.get(
     "/transformations/{transformation_id}", response_model=TransformationResponse
 )
-async def get_transformation(transformation_id: str):
+async def get_transformation(request: Request, transformation_id: str):
     """Get a specific transformation by ID."""
     try:
+        user_id = get_current_user_id(request)
         transformation = await Transformation.get(transformation_id)
         if not transformation:
             raise HTTPException(status_code=404, detail="Transformation not found")
+        check_owner(user_id, transformation)
 
         return TransformationResponse(
             id=transformation.id or "",
@@ -189,13 +210,15 @@ async def get_transformation(transformation_id: str):
     "/transformations/{transformation_id}", response_model=TransformationResponse
 )
 async def update_transformation(
-    transformation_id: str, transformation_update: TransformationUpdate
+    request: Request, transformation_id: str, transformation_update: TransformationUpdate
 ):
     """Update a transformation."""
     try:
+        user_id = get_current_user_id(request)
         transformation = await Transformation.get(transformation_id)
         if not transformation:
             raise HTTPException(status_code=404, detail="Transformation not found")
+        check_owner(user_id, transformation)
 
         # Update only provided fields
         if transformation_update.name is not None:
@@ -233,12 +256,14 @@ async def update_transformation(
 
 
 @router.delete("/transformations/{transformation_id}")
-async def delete_transformation(transformation_id: str):
+async def delete_transformation(request: Request, transformation_id: str):
     """Delete a transformation."""
     try:
+        user_id = get_current_user_id(request)
         transformation = await Transformation.get(transformation_id)
         if not transformation:
             raise HTTPException(status_code=404, detail="Transformation not found")
+        check_owner(user_id, transformation)
 
         await transformation.delete()
 

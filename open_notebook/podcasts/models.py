@@ -14,6 +14,7 @@ class EpisodeProfile(ObjectModel):
     """
 
     table_name: ClassVar[str] = "episode_profile"
+    mixed_ownership: ClassVar[bool] = True
 
     name: str = Field(..., description="Unique profile name")
     description: Optional[str] = Field(None, description="Profile description")
@@ -52,6 +53,7 @@ class SpeakerProfile(ObjectModel):
     """
 
     table_name: ClassVar[str] = "speaker_profile"
+    mixed_ownership: ClassVar[bool] = True
 
     name: str = Field(..., description="Unique profile name")
     description: Optional[str] = Field(None, description="Profile description")
@@ -91,6 +93,7 @@ class PodcastEpisode(ObjectModel):
     """Enhanced PodcastEpisode with job tracking and metadata"""
 
     table_name: ClassVar[str] = "episode"
+    user_owned: ClassVar[bool] = True
 
     name: str = Field(..., description="Episode name")
     episode_profile: Dict[str, Any] = Field(
