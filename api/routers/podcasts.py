@@ -40,11 +40,12 @@ def _resolve_audio_path(audio_file: str) -> Path:
 
 
 @router.post("/podcasts/generate", response_model=PodcastGenerationResponse)
-async def generate_podcast(request: PodcastGenerationRequest):
+async def generate_podcast(request: Request, body: PodcastGenerationRequest):
     """
     Generate a podcast episode using Episode Profiles.
     Returns immediately with job ID for status tracking.
     """
+    user_id = get_current_user_id(request)
     try:
         job_id = await PodcastService.submit_generation_job(
             episode_profile_name=body.episode_profile,

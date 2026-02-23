@@ -41,6 +41,7 @@ class PodcastService:
         notebook_id: Optional[str] = None,
         content: Optional[str] = None,
         briefing_suffix: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> str:
         """Submit a podcast generation job for background processing"""
         try:
@@ -75,13 +76,13 @@ class PodcastService:
                     "Content is required - provide either content or notebook_id"
                 )
 
-            # Prepare command arguments
             command_args = {
                 "episode_profile": episode_profile_name,
                 "speaker_profile": speaker_profile_name,
                 "episode_name": episode_name,
                 "content": str(content),
                 "briefing_suffix": briefing_suffix,
+                "user_id": user_id,
             }
 
             # Ensure command modules are imported before submitting
@@ -138,10 +139,12 @@ class PodcastService:
             )
 
     @staticmethod
-    async def list_episodes() -> list:
+    async def list_episodes(user_id: Optional[str] = None) -> list:
         """List all podcast episodes"""
         try:
-            episodes = await PodcastEpisode.get_all(order_by="created desc")
+            episodes = await PodcastEpisode.get_all(
+                order_by="created desc", user_id=user_id
+            )
             return episodes
         except Exception as e:
             logger.error(f"Failed to list podcast episodes: {e}")
