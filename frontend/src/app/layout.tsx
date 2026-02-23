@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/sonner";
@@ -10,11 +10,18 @@ import { ConnectionGuard } from "@/components/common/ConnectionGuard";
 import { themeScript } from "@/lib/theme-script";
 import { I18nProvider } from "@/components/providers/I18nProvider";
 
-const inter = Inter({ subsets: ["latin"] });
+const _inter = Inter({ subsets: ["latin"] });
+const _jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Audioprism",
-  description: "AI-powered podcast factory for BioLight",
+  title: "Audioprism SDK | Build AI Agents in Minutes",
+  description:
+    "Create powerful AI agent workflows with just a few lines of code. The open-source SDK for building intelligent, autonomous agent systems.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#09090b",
+  userScalable: true,
 };
 
 export default function RootLayout({
