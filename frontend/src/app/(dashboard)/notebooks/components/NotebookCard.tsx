@@ -5,7 +5,7 @@ import { NotebookResponse } from '@/lib/types/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { MoreHorizontal, Archive, ArchiveRestore, Trash2, FileText, StickyNote } from 'lucide-react'
+import { MoreHorizontal, Archive, ArchiveRestore, Trash2, FileText, StickyNote, Loader2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import {
   DropdownMenu,
@@ -72,18 +72,18 @@ export function NotebookCard({ notebook }: NotebookCardProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenuItem onClick={handleArchiveToggle}>
-                    {notebook.archived ? (
-                      <>
-                        <ArchiveRestore className="h-4 w-4 mr-2" />
-                        {t.notebooks.unarchive}
-                      </>
+                  <DropdownMenuItem
+                    onClick={handleArchiveToggle}
+                    disabled={updateNotebook.isPending}
+                  >
+                    {updateNotebook.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : notebook.archived ? (
+                      <ArchiveRestore className="h-4 w-4 mr-2" />
                     ) : (
-                      <>
-                        <Archive className="h-4 w-4 mr-2" />
-                        {t.notebooks.archive}
-                      </>
+                      <Archive className="h-4 w-4 mr-2" />
                     )}
+                    {notebook.archived ? t.notebooks.unarchive : t.notebooks.archive}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={(e) => {

@@ -31,6 +31,7 @@ export default function SourcesPage() {
     open: false,
     source: null
   })
+  const [isDeleting, setIsDeleting] = useState(false)
   const router = useRouter()
   const tableRef = useRef<HTMLTableElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -238,16 +239,18 @@ export default function SourcesPage() {
   const handleDeleteConfirm = async () => {
     if (!deleteDialog.source) return
 
+    setIsDeleting(true)
     try {
       await sourcesApi.delete(deleteDialog.source.id)
       toast.success(t.sources.deleteSuccess)
-      // Remove the deleted source from the list
       setSources(prev => prev.filter(s => s.id !== deleteDialog.source?.id))
       setDeleteDialog({ open: false, source: null })
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string } }, message?: string };
       console.error('Failed to delete source:', error)
       toast.error(t(getApiErrorKey(error.response?.data?.detail || error.message)))
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -421,12 +424,13 @@ export default function SourcesPage() {
 
       <ConfirmDialog
         open={deleteDialog.open}
-        onOpenChange={(open) => setDeleteDialog({ open, source: deleteDialog.source })}
+        onOpenChange={(open) => !isDeleting && setDeleteDialog({ open, source: deleteDialog.source })}
         title={t.sources.delete}
         description={t.sources.deleteConfirmWithTitle.replace('{title}', deleteDialog.source?.title || t.sources.untitledSource)}
         confirmText={t.common.delete}
         confirmVariant="destructive"
         onConfirm={handleDeleteConfirm}
+        isLoading={isDeleting}
       />
     </AppShell>
   )

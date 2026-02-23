@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { NotebookResponse } from '@/lib/types/api'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Archive, ArchiveRestore, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, Trash2, Loader2 } from 'lucide-react'
 import { useUpdateNotebook } from '@/lib/hooks/use-notebooks'
 import { NotebookDeleteDialog } from './NotebookDeleteDialog'
 import { formatDistanceToNow } from 'date-fns'
@@ -72,18 +72,16 @@ export function NotebookHeader({ notebook }: NotebookHeaderProps) {
                 variant="outline"
                 size="sm"
                 onClick={handleArchiveToggle}
+                disabled={updateNotebook.isPending}
               >
-                {notebook.archived ? (
-                  <>
-                    <ArchiveRestore className="h-4 w-4 mr-2" />
-                    {t.notebooks.unarchive}
-                  </>
+                {updateNotebook.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : notebook.archived ? (
+                  <ArchiveRestore className="h-4 w-4 mr-2" />
                 ) : (
-                  <>
-                    <Archive className="h-4 w-4 mr-2" />
-                    {t.notebooks.archive}
-                  </>
+                  <Archive className="h-4 w-4 mr-2" />
                 )}
+                {notebook.archived ? t.notebooks.unarchive : t.notebooks.archive}
               </Button>
               <Button
                 variant="outline"
