@@ -1,27 +1,27 @@
 """
-Authentication router for Open Notebook API.
-Provides endpoints to check authentication status.
+Authentication router for Audioprism API.
+Provides endpoints to check authentication status and current user info.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
-from open_notebook.utils.encryption import get_secret_from_env
+from api.auth import get_current_user_id
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.get("/status")
 async def get_auth_status():
-    """
-    Check if authentication is enabled.
-    Returns whether a password is required to access the API.
-    Supports Docker secrets via OPEN_NOTEBOOK_PASSWORD_FILE.
-    """
-    auth_enabled = bool(get_secret_from_env("OPEN_NOTEBOOK_PASSWORD"))
-
+    """Check authentication provider status."""
     return {
-        "auth_enabled": auth_enabled,
-        "message": "Authentication is required"
-        if auth_enabled
-        else "Authentication is disabled",
+        "auth_enabled": True,
+        "provider": "clerk",
+        "message": "Authentication is managed by Clerk",
     }
+
+
+@router.get("/me")
+async def get_current_user(request: Request):
+    """Return the currently authenticated user's ID from the Clerk JWT."""
+    user_id = get_current_user_id(request)
+    return {"user_id": user_id}
