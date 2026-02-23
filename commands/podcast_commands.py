@@ -57,6 +57,13 @@ async def generate_podcast_command(
     start_time = time.time()
 
     try:
+        # Provision API keys from database into environment variables
+        # podcast-creator reads OPENAI_API_KEY / ELEVENLABS_API_KEY from env
+        from open_notebook.ai.key_provider import provision_provider_keys
+
+        await provision_provider_keys("openai")
+        await provision_provider_keys("elevenlabs")
+
         logger.info(
             f"Starting podcast generation for episode: {input_data.episode_name}"
         )

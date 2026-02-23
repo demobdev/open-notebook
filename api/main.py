@@ -97,6 +97,20 @@ async def lifespan(app: FastAPI):
         # Fail fast - don't start the API with an outdated database schema
         raise RuntimeError(f"Failed to run database migrations: {str(e)}") from e
 
+    # Provision API keys from database into environment variables
+    # This ensures libraries that read keys from env vars (e.g. podcast-creator) work
+    try:
+        from open_notebook.ai.key_provider import provision_all_keys
+
+        provisioned = await provision_all_keys()
+        provisioned_providers = [k for k, v in provisioned.items() if v]
+        if provisioned_providers:
+            logger.info(
+                f"Provisioned API keys from database for: {', '.join(provisioned_providers)}"
+            )
+    except Exception as e:
+        logger.warning(f"Could not provision API keys from database: {e}")
+
     logger.success("API initialization completed successfully")
 
     # Yield control to the application
