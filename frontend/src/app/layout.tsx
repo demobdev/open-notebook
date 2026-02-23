@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/sonner";
@@ -11,10 +11,20 @@ import { themeScript } from "@/lib/theme-script";
 import { I18nProvider } from "@/components/providers/I18nProvider";
 
 const inter = Inter({ subsets: ["latin"] });
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+});
 
 export const metadata: Metadata = {
-  title: "Audioprism",
-  description: "AI-powered podcast factory for BioLight",
+  title: "Audioprism Studio | Turn Content into AI Podcasts & Research Notes",
+  description:
+    "Upload PDFs, audio, video, and web pages. Generate smart research notes, semantic search, and professional AI-powered podcasts — no setup required.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#09090b",
+  userScalable: true,
 };
 
 export default function RootLayout({
@@ -24,11 +34,11 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
+      <html lang="en" suppressHydrationWarning className="scroll-smooth">
         <head>
           <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         </head>
-        <body className={inter.className}>
+        <body className={`${inter.className} ${jetbrainsMono.variable}`}>
           <ErrorBoundary>
             <ThemeProvider>
               <QueryProvider>
