@@ -1,5 +1,3 @@
-import { auth } from "@clerk/nextjs/server"
-import { redirect } from "next/navigation"
 import { Navbar } from "@/components/landing/Navbar"
 import { HeroSection } from "@/components/landing/HeroSection"
 import { LogoCloud } from "@/components/landing/LogoCloud"
@@ -17,15 +15,7 @@ import { CTASection } from "@/components/landing/CTASection"
 import { BlogPreview } from "@/components/landing/BlogPreview"
 import { Footer } from "@/components/landing/Footer"
 
-export const dynamic = "force-dynamic"
-
-export default async function HomePage() {
-  const { userId } = await auth()
-
-  if (userId) {
-    redirect("/notebooks")
-  }
-
+export default function HomePage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
