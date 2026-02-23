@@ -14,9 +14,9 @@ const _inter = Inter({ subsets: ["latin"] });
 const _jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Audioprism SDK | Build AI Agents in Minutes",
+  title: "Audioprism Studio | Turn Content into AI Podcasts & Research Notes",
   description:
-    "Create powerful AI agent workflows with just a few lines of code. The open-source SDK for building intelligent, autonomous agent systems.",
+    "Upload PDFs, audio, video, and web pages. Generate smart research notes, semantic search, and professional AI-powered podcasts — no setup required.",
 };
 
 export const viewport: Viewport = {
@@ -31,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
+      <html lang="en" suppressHydrationWarning className="scroll-smooth">
         <head>
           <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         </head>

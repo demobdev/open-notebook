@@ -1,105 +1,76 @@
-"use client"
-
-import { useState } from "react"
+import Link from "next/link"
 import { Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
-const periods = ["Yearly", "Bulk (10%)", "Monthly"] as const
-
 const plans = [
   {
-    name: "Basic",
-    monthlyPrice: 99,
-    yearlyPrice: 79,
-    description: "Perfect for individuals and small projects.",
+    name: "Free",
+    price: "$0",
+    period: "/month",
+    description: "Get started with AI research.",
     features: [
-      "500 AI generations per month",
-      "Basic text-to-image conversion",
-      "Email support",
-      "Access to community forum",
+      "20 chat messages/day",
+      "100 pages indexed/month",
+      "1 notebook",
+      "Community support",
     ],
     highlighted: false,
-    cta: "Get Started",
+    cta: "Get Started Free",
+    ctaHref: "/sign-up",
+    ctaVariant: "outline" as const,
   },
   {
     name: "Pro",
-    monthlyPrice: 290,
-    yearlyPrice: 232,
-    description: "Ideal for professionals and growing teams.",
+    price: "$29",
+    period: "/month",
+    description: "For creators and researchers.",
+    badge: "Most Popular",
     features: [
-      "1,000 AI generations per month",
-      "Advanced text-to-image conversion",
-      "Priority email support",
-      "API access",
-      "Custom AI model fine-tuning",
-      "Collaboration tools",
+      "500 chat messages/month",
+      "60 min TTS/month",
+      "10 podcast episodes/month",
+      "1,000 pages indexed/month",
+      "BYOK support",
+      "Priority support",
     ],
-    highlighted: false,
-    cta: "Get Started",
+    highlighted: true,
+    cta: "Upgrade to Pro",
+    ctaHref: "/sign-up",
+    ctaVariant: "default" as const,
   },
   {
     name: "Enterprise",
-    monthlyPrice: null,
-    yearlyPrice: null,
-    description: "Tailored solutions for large organizations.",
+    price: "$99",
+    period: "/month",
+    description: "For teams that run on output.",
     features: [
-      "Unlimited AI generations",
-      "Dedicated account manager",
-      "24/7 phone and email support",
-      "Custom AI model development",
-      "On-premise deployment option",
-      "Advanced analytics and reporting",
+      "2,000 chat messages/month",
+      "300 min TTS/month",
+      "50 podcast episodes/month",
+      "10,000 pages indexed/month",
+      "API access",
+      "Dedicated support",
     ],
-    highlighted: true,
-    cta: "Get Started",
+    highlighted: false,
+    cta: "Contact Sales",
+    ctaHref: "/sign-up",
+    ctaVariant: "outline" as const,
   },
 ]
 
 export function PricingSection() {
-  const [period, setPeriod] = useState<(typeof periods)[number]>("Yearly")
-
   return (
-    <section id="pricing" className="border-b border-border py-20">
+    <section id="pricing" className="border-t border-border/40 py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Background glow */}
-        <div className="pointer-events-none absolute inset-x-0">
-          <div className="mx-auto h-[400px] w-[600px] rounded-full bg-primary/5 blur-[120px]" />
-        </div>
-
-        <div className="relative mx-auto mb-12 max-w-2xl text-center">
-          <p className="mb-3 text-sm font-medium uppercase tracking-wider text-primary">
-            Pricing
-          </p>
-          <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
-            Simple pricing for everyone.
+        <div className="mx-auto mb-14 max-w-2xl text-center">
+          <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Simple pricing that scales with your usage.
           </h2>
           <p className="mt-4 text-pretty text-lg leading-relaxed text-muted-foreground">
-            Choose an{" "}
-            <span className="font-semibold text-foreground">affordable plan</span>{" "}
-            {"that's"} packed with the best features for engaging your audience.
+            Start free. Upgrade when you want more output — or bring your own keys for maximum control.
           </p>
-        </div>
-
-        {/* Period toggle */}
-        <div className="mb-12 flex justify-center">
-          <div className="inline-flex rounded-full border border-border bg-secondary p-1">
-            {periods.map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={cn(
-                  "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-                  period === p
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
@@ -109,35 +80,23 @@ export function PricingSection() {
               className={cn(
                 "relative flex flex-col rounded-xl border p-8",
                 plan.highlighted
-                  ? "border-primary bg-primary/5"
-                  : "border-border bg-card"
+                  ? "border-primary/60 bg-gradient-to-b from-primary/5 to-card"
+                  : "border-border/40 bg-card"
               )}
             >
-              {plan.highlighted && (
+              {plan.badge && (
                 <Badge className="absolute right-4 top-4 bg-primary text-primary-foreground">
-                  Most Popular
+                  {plan.badge}
                 </Badge>
               )}
 
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-foreground">
-                  {plan.name}
-                </h3>
+                <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
                 <div className="mt-3 flex items-baseline gap-1">
-                  {plan.monthlyPrice ? (
-                    <>
-                      <span className="text-4xl font-bold text-foreground">
-                        ${period === "Yearly" ? plan.yearlyPrice : plan.monthlyPrice}
-                      </span>
-                      <span className="text-sm text-muted-foreground">/year</span>
-                    </>
-                  ) : (
-                    <span className="text-4xl font-bold text-foreground">Custom</span>
-                  )}
+                  <span className="text-4xl font-bold text-foreground">{plan.price}</span>
+                  <span className="text-sm text-muted-foreground">{plan.period}</span>
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {plan.description}
-                </p>
+                <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
               </div>
 
               <ul className="mb-8 flex-1 space-y-3">
@@ -149,19 +108,25 @@ export function PricingSection() {
                 ))}
               </ul>
 
-              <Button
-                className={cn(
-                  "w-full",
-                  plan.highlighted
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "bg-secondary text-foreground hover:bg-secondary/80"
-                )}
-              >
-                {plan.cta}
-              </Button>
+              <Link href={plan.ctaHref}>
+                <Button
+                  variant={plan.ctaVariant}
+                  className={cn(
+                    "w-full",
+                    plan.highlighted &&
+                      "bg-gradient-to-r from-[#bd34fe] to-[#41d1ff] text-foreground hover:opacity-90"
+                  )}
+                >
+                  {plan.cta}
+                </Button>
+              </Link>
             </div>
           ))}
         </div>
+
+        <p className="mt-8 text-center text-sm text-muted-foreground">
+          Need more? Top up usage instantly — or use your own keys.
+        </p>
       </div>
     </section>
   )

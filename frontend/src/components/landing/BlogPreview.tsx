@@ -4,39 +4,36 @@ import { ArrowRight } from "lucide-react"
 const posts = [
   {
     slug: "getting-started-with-audioprism",
-    title: "Getting Started with the SDK",
+    title: "Getting Started with Audioprism Studio",
     excerpt:
-      "Introducing Audioprism SDK, a cutting-edge AI solution for building modern agent workflows.",
-    date: "Jan 15, 2026",
+      "Learn how to upload your first sources, generate notes, and create an AI podcast in under five minutes.",
+    date: "Feb 10, 2026",
     tag: "Tutorial",
   },
   {
-    slug: "why-ai-agents-matter",
-    title: "Why AI Agents Matter",
+    slug: "why-ai-podcasts",
+    title: "Why AI Podcasts Are the Future of Content",
     excerpt:
-      "Explore why autonomous AI agents represent the next paradigm shift in software development.",
-    date: "Jan 22, 2026",
+      "Exploring how AI-generated audio is changing the way we consume research, news, and long-form content.",
+    date: "Feb 3, 2026",
     tag: "Insights",
   },
   {
-    slug: "building-multi-agent-systems",
-    title: "Building Multi-Agent Systems",
+    slug: "semantic-search-deep-dive",
+    title: "Semantic Search: Ask Your Documents Anything",
     excerpt:
-      "A deep dive into orchestrating multiple AI agents for complex task automation workflows.",
-    date: "Feb 1, 2026",
+      "A deep dive into how Audioprism indexes and retrieves information across all your uploaded sources.",
+    date: "Jan 28, 2026",
     tag: "Guide",
   },
 ]
 
 export function BlogPreview() {
   return (
-    <section className="border-b border-border py-20">
+    <section className="border-t border-border/40 py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-12 flex items-end justify-between">
           <div>
-            <p className="mb-3 text-sm font-medium uppercase tracking-wider text-muted-foreground">
-              Blog
-            </p>
             <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               Latest from the blog
             </h2>
@@ -55,11 +52,11 @@ export function BlogPreview() {
             <Link
               key={post.slug}
               href={`/blog/${post.slug}`}
-              className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-primary/30"
+              className="group flex flex-col overflow-hidden rounded-xl border border-border/40 bg-card transition-colors hover:border-border/80"
             >
-              <div className="flex h-40 items-center justify-center bg-secondary/50">
+              <div className="flex h-40 items-center justify-center bg-gradient-to-br from-[#bd34fe]/5 to-[#41d1ff]/5">
                 <div className="rounded-md bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
-                  Audioprism SDK
+                  Audioprism Studio
                 </div>
               </div>
               <div className="flex flex-1 flex-col p-5">
