@@ -198,12 +198,25 @@ async def generate_podcast_command(
         logger.error(f"Podcast generation failed: {e}")
         logger.exception(e)
 
-        error_msg = str(e)
-        if "Invalid json output" in error_msg or "Expecting value" in error_msg:
-            error_msg += (
+        error_msg = str(e).lower()
+        if "invalid json output" in error_msg or "expecting value" in error_msg:
+            error_msg = str(e) + (
                 "\n\nNOTE: This error commonly occurs with GPT-5 models that use extended thinking. "
                 "The model may be putting all output inside <think> tags, leaving nothing to parse. "
                 "Try using gpt-4o, gpt-4o-mini, or gpt-4-turbo instead in your episode profile."
             )
+        elif any(kw in error_msg for kw in (
+            "quota", "subscription", "payment", "401", "402", "429",
+            "invalid_api_key", "quota_exceeded", "insufficient", "billing",
+            "insufficient_quota", "max_character_limit", "credits",
+        )):
+            error_msg = str(e) + (
+                "\n\nThis is likely an API key or billing issue with your TTS provider "
+                "(ElevenLabs, OpenAI, etc.), not a software bug. Check your provider account: "
+                "verify your API key is valid and you have credits/quota remaining. "
+                "ElevenLabs: elevenlabs.io/app/usage | OpenAI: platform.openai.com/usage"
+            )
+        else:
+            error_msg = str(e)
 
         raise RuntimeError(error_msg) from e

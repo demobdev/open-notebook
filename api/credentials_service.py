@@ -353,6 +353,34 @@ async def get_env_status() -> Dict[str, bool]:
     return env_status
 
 
+async def _fetch_elevenlabs_usage(api_key) -> Optional[str]:
+    """
+    Fetch ElevenLabs subscription/usage. Returns a short message like
+    "12,500 / 30,000 characters used this month" or None on failure.
+    """
+    if not api_key:
+        return None
+    key = api_key.get_secret_value() if isinstance(api_key, SecretStr) else api_key
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.get(
+                "https://api.elevenlabs.io/v1/user/subscription",
+                headers={"xi-api-key": key, "Content-Type": "application/json"},
+            )
+            if r.status_code != 200:
+                return None
+            data = r.json()
+            used = data.get("character_count", 0) or 0
+            limit = data.get("character_limit", 0) or 0
+            if limit > 0:
+                used_fmt = f"{used:,}"
+                limit_fmt = f"{limit:,}"
+                return f"{used_fmt} / {limit_fmt} characters used this month"
+    except Exception:
+        pass
+    return None
+
+
 async def test_credential(credential_id: str) -> dict:
     """
     Test connection using a credential's configuration.
@@ -437,10 +465,15 @@ async def test_credential(credential_id: str) -> dict:
 
         elif test_type == "text_to_speech":
             AIFactory.create_text_to_speech(model_name=test_model, provider=provider, config=config)
+            msg = "Connection successful (key format valid)"
+            if provider == "elevenlabs":
+                usage_msg = await _fetch_elevenlabs_usage(config.get("api_key"))
+                if usage_msg:
+                    msg = f"Connection successful. {usage_msg}"
             return {
                 "provider": provider,
                 "success": True,
-                "message": "Connection successful (key format valid)",
+                "message": msg,
             }
 
         return {
@@ -450,18 +483,29 @@ async def test_credential(credential_id: str) -> dict:
         }
 
     except Exception as e:
-        error_msg = str(e)
-        if "401" in error_msg or "unauthorized" in error_msg.lower():
+        error_msg = str(e).lower()
+        if "401" in str(e) or "unauthorized" in error_msg:
             return {"provider": provider, "success": False, "message": "Invalid API key"}
-        elif "403" in error_msg or "forbidden" in error_msg.lower():
+        elif "403" in str(e) or "forbidden" in error_msg:
             return {"provider": provider, "success": False, "message": "API key lacks required permissions"}
-        elif "rate" in error_msg.lower() and "limit" in error_msg.lower():
+        elif any(kw in error_msg for kw in ("quota", "quota_exceeded", "insufficient", "402", "payment")):
+            return {
+                "provider": provider,
+                "success": False,
+                "message": (
+                    "Out of credits or subscription issue. This is a billing problem with your "
+                    "provider account, not the app. Add credits or renew at elevenlabs.io/app/usage"
+                    if provider == "elevenlabs"
+                    else "Out of credits or subscription issue. Check your provider billing/usage page."
+                ),
+            }
+        elif "rate" in error_msg and "limit" in error_msg:
             return {"provider": provider, "success": True, "message": "Rate limited - but connection works"}
-        elif "not found" in error_msg.lower() and "model" in error_msg.lower():
+        elif "not found" in error_msg and "model" in error_msg:
             return {"provider": provider, "success": True, "message": "API key valid (test model not available)"}
         else:
             logger.debug(f"Test connection error for credential {credential_id}: {e}")
-            truncated = error_msg[:100] + "..." if len(error_msg) > 100 else error_msg
+            truncated = str(e)[:100] + "..." if len(str(e)) > 100 else str(e)
             return {"provider": provider, "success": False, "message": f"Error: {truncated}"}
 
 
