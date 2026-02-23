@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { getDateLocale } from '@/lib/utils/date-locale'
-import { InfoIcon, RefreshCcw, Trash2 } from 'lucide-react'
+import { InfoIcon, Loader2, RefreshCcw, Trash2 } from 'lucide-react'
 
 import { resolvePodcastAssetUrl } from '@/lib/api/podcasts'
 import { getAuthToken } from '@/lib/api/client'
-import { EpisodeStatus, FAILED_EPISODE_STATUSES, PodcastEpisode } from '@/lib/types/podcasts'
+import { ACTIVE_EPISODE_STATUSES, EpisodeStatus, FAILED_EPISODE_STATUSES, PodcastEpisode } from '@/lib/types/podcasts'
 import { cn } from '@/lib/utils'
 import {
   AlertDialog,
@@ -84,19 +84,56 @@ const getSTATUS_META = (t: TranslationKeys): Record<
 
 function StatusBadge({ status }: { status?: EpisodeStatus | null }) {
   const { t } = useTranslation()
-  // Don't show badge for completed episodes
   if (status === 'completed') {
     return null
   }
 
   const meta = getSTATUS_META(t)[status ?? 'unknown']
+  const isActive = (ACTIVE_EPISODE_STATUSES as string[]).includes(status ?? '')
   return (
     <Badge
       variant="outline"
       className={cn('uppercase tracking-wide text-xs', meta.className)}
     >
+      {isActive && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
       {meta.label}
     </Badge>
+  )
+}
+
+function useElapsedTime(startDate: string | null | undefined, active: boolean) {
+  const [elapsed, setElapsed] = useState('')
+
+  useEffect(() => {
+    if (!startDate || !active) {
+      setElapsed('')
+      return
+    }
+
+    const update = () => {
+      const diff = Date.now() - new Date(startDate).getTime()
+      if (diff < 0) { setElapsed(''); return }
+      const secs = Math.floor(diff / 1000)
+      const mins = Math.floor(secs / 60)
+      const hrs = Math.floor(mins / 60)
+      if (hrs > 0) setElapsed(`${hrs}h ${mins % 60}m`)
+      else if (mins > 0) setElapsed(`${mins}m ${secs % 60}s`)
+      else setElapsed(`${secs}s`)
+    }
+
+    update()
+    const id = setInterval(update, 1000)
+    return () => clearInterval(id)
+  }, [startDate, active])
+
+  return elapsed
+}
+
+function ActiveProgressBar() {
+  return (
+    <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+      <div className="h-full w-1/3 rounded-full bg-amber-500 animate-[indeterminate_1.5s_ease-in-out_infinite]" />
+    </div>
   )
 }
 
@@ -216,10 +253,13 @@ export function EpisodeCard({ episode, onDelete, deleting, onRetry, retrying }: 
   }
 
   const isFailed = FAILED_EPISODE_STATUSES.includes(episode.job_status as EpisodeStatus)
+  const isActive = (ACTIVE_EPISODE_STATUSES as string[]).includes(episode.job_status ?? '')
+  const elapsed = useElapsedTime(episode.created, isActive)
 
   return (
-    <Card className="shadow-sm">
+    <Card className={cn('shadow-sm', isActive && 'border-amber-300 dark:border-amber-700')}>
       <CardContent className="space-y-4 p-4">
+        {isActive && <ActiveProgressBar />}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -231,6 +271,7 @@ export function EpisodeCard({ episode, onDelete, deleting, onRetry, retrying }: 
             <p className="text-xs text-muted-foreground">
               {t.podcasts.profile}: {episode.episode_profile?.name || t.common.unknown}
               {createdLabel ? ` • ${createdLabel}` : ''}
+              {isActive && elapsed ? ` • ${elapsed}` : ''}
             </p>
           </div>
           <div className="flex items-center gap-2">

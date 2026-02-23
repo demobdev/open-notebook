@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AlertCircle, Loader2, RefreshCcw } from 'lucide-react'
 
 import { useDeletePodcastEpisode, usePodcastEpisodes, useRetryPodcastEpisode } from '@/lib/hooks/use-podcasts'
@@ -56,6 +56,7 @@ export function EpisodesTab() {
     episodes,
     statusGroups,
     statusCounts,
+    hasActiveEpisodes: hasActive,
     isLoading,
     isError,
     refetch,
@@ -109,12 +110,21 @@ export function EpisodesTab() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <SummaryBadge label={t.podcasts.total} value={statusCounts.total} />
         <SummaryBadge label={t.podcasts.processingLabel} value={statusCounts.running} />
         <SummaryBadge label={t.podcasts.completedLabel} value={statusCounts.completed} />
         <SummaryBadge label={t.podcasts.failedLabel} value={statusCounts.failed} />
         <SummaryBadge label={t.podcasts.pendingLabel} value={statusCounts.pending} />
+        {hasActive && (
+          <span className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+            </span>
+            {t.podcasts.autoRefreshing}
+          </span>
+        )}
       </div>
 
       {isError ? (

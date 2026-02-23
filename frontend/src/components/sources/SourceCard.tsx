@@ -108,6 +108,34 @@ function getSourceType(source: SourceListResponse): 'link' | 'upload' | 'text' {
   return 'text'
 }
 
+function useElapsedTime(startDate: string | null | undefined, active: boolean) {
+  const [elapsed, setElapsed] = useState('')
+
+  useEffect(() => {
+    if (!startDate || !active) {
+      setElapsed('')
+      return
+    }
+
+    const update = () => {
+      const diff = Date.now() - new Date(startDate).getTime()
+      if (diff < 0) { setElapsed(''); return }
+      const secs = Math.floor(diff / 1000)
+      const mins = Math.floor(secs / 60)
+      const hrs = Math.floor(mins / 60)
+      if (hrs > 0) setElapsed(`${hrs}h ${mins % 60}m`)
+      else if (mins > 0) setElapsed(`${mins}m ${secs % 60}s`)
+      else setElapsed(`${secs}s`)
+    }
+
+    update()
+    const id = setInterval(update, 1000)
+    return () => clearInterval(id)
+  }, [startDate, active])
+
+  return elapsed
+}
+
 export function SourceCard({
   source,
   onClick,
@@ -211,6 +239,8 @@ export function SourceCard({
   const isProcessing: boolean = currentStatus === 'new' || currentStatus === 'running' || currentStatus === 'queued'
   const isFailed: boolean = currentStatus === 'failed'
   const isCompleted: boolean = currentStatus === 'completed'
+  const sourceCreated = (source as SourceListResponse & { created?: string }).created
+  const elapsed = useElapsedTime(sourceCreated ?? null, isProcessing)
 
   return (
     <Card
@@ -237,6 +267,7 @@ export function SourceCard({
                     isProcessing && 'animate-spin'
                   )} />
                   {statusLoading && shouldFetchStatus ? t.sources.checking : statusConfig.label}
+                  {isProcessing && elapsed ? ` · ${elapsed}` : ''}
                 </div>
 
                 {/* Source type indicator */}

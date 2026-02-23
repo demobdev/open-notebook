@@ -51,7 +51,7 @@ export function usePodcastEpisodes(options?: { autoRefresh?: boolean }) {
         return false
       }
 
-      return hasActiveEpisodes(data) ? 10_000 : false
+      return hasActiveEpisodes(data) ? 5_000 : false
     },
   })
 

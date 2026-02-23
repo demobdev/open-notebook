@@ -567,6 +567,7 @@ export const enUS = {
     statusCompletedDesc: "Ready to review, download, or publish.",
     statusFailedTitle: "Failed Episodes",
     statusFailedDesc: "Episodes that encountered issues during generation.",
+    autoRefreshing: "Auto-refreshing",
     templatesWorkspaceTitle: "Templates workspace",
     templatesWorkspaceDesc: "Build reusable episode and speaker configurations for fast podcast production.",
     howTemplatesPowerTitle: "How templates power podcast generation",
