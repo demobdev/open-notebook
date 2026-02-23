@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useClerk, UserButton } from '@clerk/nextjs'
 import { useSidebarStore } from '@/lib/stores/sidebar-store'
+import { useAdminStore } from '@/lib/stores/admin-store'
 import { useCreateDialogs } from '@/lib/hooks/use-create-dialogs'
 import {
   Tooltip,
@@ -41,6 +42,7 @@ import {
   Plus,
   Wrench,
   Command,
+  Shield,
 } from 'lucide-react'
 
 const getNavigation = (t: TranslationKeys) => [
@@ -88,6 +90,7 @@ export function AppSidebar({ onNavigate, forceMobileView }: AppSidebarProps = {}
   const { signOut } = useClerk()
   const { isCollapsed: storedCollapsed, toggleCollapse } = useSidebarStore()
   const isCollapsed = forceMobileView ? false : storedCollapsed
+  const { isAdmin } = useAdminStore()
   const { openSourceDialog, openNotebookDialog, openPodcastDialog } = useCreateDialogs()
 
   const [createMenuOpen, setCreateMenuOpen] = useState(false)
@@ -125,30 +128,48 @@ export function AppSidebar({ onNavigate, forceMobileView }: AppSidebarProps = {}
           )}
         >
           {isCollapsed ? (
-            <div className="relative flex items-center justify-center w-full">
-              <Image
-                src="/logo.svg"
-                alt="Audioprism"
-                width={32}
-                height={32}
-                className="transition-opacity group-hover:opacity-0"
-              />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleCollapse}
-                className="absolute text-sidebar-foreground hover:bg-sidebar-accent opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Menu className="h-4 w-4" />
-              </Button>
+            <div className="relative flex flex-col items-center justify-center w-full gap-1">
+              <div className="relative flex items-center justify-center w-full">
+                <Image
+                  src="/logo.svg"
+                  alt="Audioprism"
+                  width={32}
+                  height={32}
+                  className="transition-opacity group-hover:opacity-0"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleCollapse}
+                  className="absolute text-sidebar-foreground hover:bg-sidebar-accent opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </div>
+              {isAdmin && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Shield className="h-3.5 w-3.5 text-amber-500" />
+                  </TooltipTrigger>
+                  <TooltipContent side="right">God Mode Active</TooltipContent>
+                </Tooltip>
+              )}
             </div>
           ) : (
             <>
               <div className="flex items-center gap-2">
                 <Image src="/logo.svg" alt={t.common.appName} width={32} height={32} />
-                <span className="text-base font-medium text-sidebar-foreground">
-                  {t.common.appName}
-                </span>
+                <div className="flex flex-col">
+                  <span className="text-base font-medium text-sidebar-foreground">
+                    {t.common.appName}
+                  </span>
+                  {isAdmin && (
+                    <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-amber-500">
+                      <Shield className="h-3 w-3" />
+                      God Mode
+                    </span>
+                  )}
+                </div>
               </div>
               {!forceMobileView && (
                 <Button
