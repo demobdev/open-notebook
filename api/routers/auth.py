@@ -5,7 +5,7 @@ Provides endpoints to check authentication status and current user info.
 
 from fastapi import APIRouter, Request
 
-from api.auth import get_current_user_id
+from api.auth import get_current_user_id, is_admin
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -22,6 +22,9 @@ async def get_auth_status():
 
 @router.get("/me")
 async def get_current_user(request: Request):
-    """Return the currently authenticated user's ID from the Clerk JWT."""
+    """Return the currently authenticated user's ID and role."""
     user_id = get_current_user_id(request)
-    return {"user_id": user_id}
+    return {
+        "user_id": user_id,
+        "is_admin": is_admin(user_id),
+    }

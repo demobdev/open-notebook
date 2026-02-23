@@ -187,9 +187,26 @@ class ClerkJWTMiddleware(BaseHTTPMiddleware):
 security = HTTPBearer(auto_error=False)
 
 
+def _get_admin_ids() -> set[str]:
+    raw = os.getenv("ADMIN_USER_IDS", "")
+    return {uid.strip() for uid in raw.split(",") if uid.strip()}
+
+
+def is_admin(user_id: str) -> bool:
+    return user_id in _get_admin_ids()
+
+
 def get_current_user_id(request: Request) -> str:
     """FastAPI dependency: extracts user_id from request.state (set by ClerkJWTMiddleware)."""
     user_id = getattr(request.state, "user_id", None)
     if not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    return user_id
+
+
+def require_admin(request: Request) -> str:
+    """FastAPI dependency: requires the current user to be an admin."""
+    user_id = get_current_user_id(request)
+    if not is_admin(user_id):
+        raise HTTPException(status_code=403, detail="Admin access required")
     return user_id
