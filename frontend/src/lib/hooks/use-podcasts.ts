@@ -65,12 +65,12 @@ export function usePodcastEpisodes(options?: { autoRefresh?: boolean }) {
       const status = ep.job_status ?? 'unknown'
       const prevStatus = prev[ep.id]
 
-      if (prevStatus && ACTIVE_EPISODE_STATUSES.includes(prevStatus)) {
+      if (prevStatus && (ACTIVE_EPISODE_STATUSES as string[]).includes(prevStatus)) {
         if (status === 'completed') {
           sonnerToast.success(t.podcasts.podcastReady, {
             description: t.podcasts.podcastReadyDesc,
           })
-        } else if (FAILED_EPISODE_STATUSES.includes(status)) {
+        } else if ((FAILED_EPISODE_STATUSES as string[]).includes(status)) {
           sonnerToast.error(t.podcasts.podcastFailed, {
             description: t.podcasts.podcastFailedDesc,
           })
