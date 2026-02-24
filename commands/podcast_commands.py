@@ -16,44 +16,6 @@ except ImportError as e:
     logger.error(f"Failed to import podcast_creator: {e}")
     raise ValueError("podcast_creator library not available")
 
-# Minimum bytes for a valid podcast file (headers + minimal content)
-# TTS failures can produce empty/silent files; we detect and fail explicitly
-_MIN_VALID_AUDIO_BYTES = 50_000
-
-
-def _validate_podcast_audio(result: dict) -> None:
-    """
-    Ensure the podcast output has real audio content.
-    TTS failures may produce silent/0-duration files instead of raising.
-    """
-    path = result.get("final_output_file_path") if result else None
-    if not path or not Path(path).exists():
-        raise ValueError(
-            "Podcast generation produced no audio file. This usually indicates "
-            "a TTS (ElevenLabs/OpenAI) failure—check your API key and credits."
-        )
-    size = Path(path).stat().st_size
-    if size < _MIN_VALID_AUDIO_BYTES:
-        raise ValueError(
-            f"Podcast audio file is too small ({size} bytes). TTS likely failed "
-            "without raising—check your ElevenLabs/OpenAI API key and credits."
-        )
-    # Try to verify duration (pydub needs ffmpeg)
-    try:
-        from pydub import AudioSegment
-
-        seg = AudioSegment.from_file(path)
-        if seg.duration_seconds < 0.5:
-            raise ValueError(
-                f"Podcast audio is effectively empty ({seg.duration_seconds:.1f}s). "
-                "TTS failed without raising—check your TTS provider API key and credits."
-            )
-    except Exception as e:
-        if isinstance(e, ValueError):
-            raise
-        # pydub/ffmpeg may be unavailable; size check above is our fallback
-        logger.debug("Could not verify audio duration via pydub: %s", e)
-
 
 def full_model_dump(model):
     if isinstance(model, BaseModel):
@@ -104,10 +66,6 @@ async def generate_podcast_command(
         await provision_provider_keys("openai")
         await provision_provider_keys("elevenlabs")
 
-        # Debug: confirm keys reached worker (helps diagnose TTS silent failures)
-        has_eleven = bool(os.environ.get("ELEVENLABS_API_KEY"))
-        logger.info("API key provisioning: ELEVENLABS_API_KEY=%s", "set" if has_eleven else "NOT SET")
-
         logger.info(
             f"Starting podcast generation for episode: {input_data.episode_name}"
         )
@@ -154,10 +112,6 @@ async def generate_podcast_command(
             )
         for w in validation.warnings:
             logger.warning(f"Config warning: [{w.field}] {w.message}")
-
-        # ElevenLabs free tier: limit concurrency to avoid rate limits
-        if tts_provider == "elevenlabs" and "TTS_BATCH_SIZE" not in os.environ:
-            os.environ["TTS_BATCH_SIZE"] = "2"
 
         # 3. Load all profiles and configure podcast-creator
         episode_profiles = await repo_query("SELECT * FROM episode_profile")
@@ -217,10 +171,6 @@ async def generate_podcast_command(
             speaker_config=speaker_profile.name,
             episode_profile=episode_profile.name,
         )
-
-        # Validate output: TTS failures can produce silent/0-duration files
-        # instead of raising; detect and surface as explicit error
-        _validate_podcast_audio(result)
 
         episode.audio_file = (
             str(result.get("final_output_file_path")) if result else None
