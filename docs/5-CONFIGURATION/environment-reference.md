@@ -14,6 +14,7 @@ Comprehensive list of all environment variables available in Open Notebook.
 | `OPEN_NOTEBOOK_PASSWORD` | No | None | Password to protect Open Notebook instance |
 | `OPEN_NOTEBOOK_ENCRYPTION_KEY` | **Yes** | None | Secret string to encrypt credentials stored in database (any string works). **Required** for the credential system. Supports Docker secrets via `_FILE` suffix. |
 | `HOSTNAME` | No | `0.0.0.0` (in Docker) | Network interface for Next.js to bind to. Default `0.0.0.0` ensures accessibility from reverse proxies |
+| `ADMIN_USER_IDS` | No | None | Comma-separated Clerk user IDs that get God Mode (admin bypass for metering, cross-user access). Required for God Mode badge in sidebar. |
 
 > **Important**: `OPEN_NOTEBOOK_ENCRYPTION_KEY` is required for storing AI provider credentials via the Settings UI. Without it, you cannot save credentials. If you change or lose this key, all stored credentials become unreadable.
 
@@ -150,6 +151,8 @@ OPEN_NOTEBOOK_PASSWORD=your-secure-password
 API_URL=https://mynotebook.example.com
 SURREAL_USER=production_user
 SURREAL_PASSWORD=secure_password
+# God Mode: comma-separated Clerk user IDs (get from Clerk Dashboard or /auth/me when signed in)
+ADMIN_USER_IDS=user_xxx,user_yyy
 ```
 
 ### Self-Hosted Behind Reverse Proxy

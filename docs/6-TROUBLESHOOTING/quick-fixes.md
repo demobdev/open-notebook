@@ -206,9 +206,9 @@ For detailed help: See [Search Effectively](../3-USER-GUIDE/search.md)
 
 ## #8: "Podcast generation failed"
 
-**Symptom:** "Podcast generation failed" error
+**Symptom:** "Podcast generation failed" error (often with "429" or "insufficient_quota" in the message)
 
-**Cause:** Insufficient content, API quota, or network issue
+**Cause:** Insufficient content, API quota, rate limiting, or network issue
 
 **Solution (1 minute):**
 
@@ -217,16 +217,23 @@ For detailed help: See [Search Effectively](../3-USER-GUIDE/search.md)
 # Select at least 1-2 sources
 # Avoid single-sentence sources
 
-# Step 2: Try again
+# Step 2: If error says "429" or "insufficient_quota" (OpenAI)
+# The outline/transcript step uses your episode profile's LLM.
+# High-end models (Claude Opus, GPT-4) have lower rate limits.
+# → Edit your Episode Profile (Templates tab) and set Outline Model
+#   and Transcript Model to gpt-4o-mini or gpt-4o (higher limits).
+# → Wait 1-2 minutes and retry.
+
+# Step 3: Try again
 # Sometimes it's a temporary API issue
 # Wait 30 seconds and retry
 
-# Step 3: Check your TTS provider has quota
+# Step 4: Check your TTS provider has quota
 # OpenAI: Check account has credits
 # ElevenLabs: Check monthly quota
 # Google: Check API quota
 
-# Step 4: Try different TTS provider
+# Step 5: Try different TTS provider
 # In podcast generation, choose "Google" or "Local"
 # instead of "ElevenLabs"
 ```
