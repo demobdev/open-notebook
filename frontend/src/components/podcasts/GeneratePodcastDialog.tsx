@@ -653,10 +653,19 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
         setConfigErrors(result.errors)
         setConfigWarnings(result.warnings)
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         if (cancelled) return
         console.error('Config validation failed:', err)
-        setConfigErrors([])
+        // Surface API error (e.g. 404: profile not found) so user knows why
+        const detail = err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { detail?: string | Array<{ msg: string }> } } }).response?.data?.detail
+          : undefined
+        const msg = typeof detail === 'string'
+          ? detail
+          : Array.isArray(detail) && detail.length > 0
+            ? detail.map((d) => (typeof d === 'object' && d?.msg) || String(d)).join('; ')
+            : 'Could not validate config. Episode or speaker profile may not exist in this environment.'
+        setConfigErrors([{ field: 'api', message: msg }])
         setConfigWarnings([])
       })
       .finally(() => {
