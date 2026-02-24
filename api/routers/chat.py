@@ -355,9 +355,9 @@ async def execute_chat(request: Request, body: ExecuteChatRequest):
         # Verify session exists
         # Ensure session_id has proper table prefix
         full_session_id = (
-            request.session_id
-            if request.session_id.startswith("chat_session:")
-            else f"chat_session:{request.session_id}"
+            body.session_id
+            if body.session_id.startswith("chat_session:")
+            else f"chat_session:{body.session_id}"
         )
         session = await ChatSession.get(full_session_id)
         if not session:
@@ -365,8 +365,8 @@ async def execute_chat(request: Request, body: ExecuteChatRequest):
 
         # Determine model override (per-request override takes precedence over session-level)
         model_override = (
-            request.model_override
-            if request.model_override is not None
+            body.model_override
+            if body.model_override is not None
             else getattr(session, "model_override", None)
         )
 
@@ -380,13 +380,13 @@ async def execute_chat(request: Request, body: ExecuteChatRequest):
         # Prepare state for execution
         state_values = current_state.values if current_state else {}
         state_values["messages"] = state_values.get("messages", [])
-        state_values["context"] = request.context
+        state_values["context"] = body.context
         state_values["model_override"] = model_override
 
         # Add user message to state
         from langchain_core.messages import HumanMessage
 
-        user_message = HumanMessage(content=request.message)
+        user_message = HumanMessage(content=body.message)
         state_values["messages"].append(user_message)
 
         # Execute chat graph
@@ -415,15 +415,15 @@ async def execute_chat(request: Request, body: ExecuteChatRequest):
                 )
             )
 
-        return ExecuteChatResponse(session_id=request.session_id, messages=messages)
+        return ExecuteChatResponse(session_id=body.session_id, messages=messages)
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Session not found")
     except Exception as e:
         # Log detailed error with context for debugging
         logger.error(
             f"Error executing chat: {str(e)}\n"
-            f"  Session ID: {request.session_id}\n"
-            f"  Model override: {request.model_override}\n"
+            f"  Session ID: {body.session_id}\n"
+            f"  Model override: {body.model_override}\n"
             f"  Traceback:\n{traceback.format_exc()}"
         )
         raise HTTPException(status_code=500, detail=f"Error executing chat: {str(e)}")
