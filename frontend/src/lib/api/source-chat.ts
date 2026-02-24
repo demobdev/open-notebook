@@ -47,7 +47,6 @@ export const sourceChatApi = {
 
   sendMessage: async (sourceId: string, sessionId: string, data: SendMessageRequest) => {
     const token = await getAuthToken()
-
     const url = `/api/sources/${sourceId}/chat/sessions/${sessionId}/messages`
 
     const response = await fetch(url, {
@@ -60,7 +59,23 @@ export const sourceChatApi = {
     })
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      let detail = `HTTP error! status: ${response.status}`
+      try {
+        const body = await response.json()
+        if (body?.detail) {
+          detail = Array.isArray(body.detail)
+            ? body.detail.map((d: { msg?: string }) => d.msg ?? String(d)).join('; ')
+            : String(body.detail)
+        }
+      } catch {
+        try {
+          const text = await response.text()
+          if (text) detail = text.slice(0, 500)
+        } catch { /* ignore */ }
+      }
+      const err = new Error(detail) as Error & { response?: { data?: { detail?: string } } }
+      err.response = { data: { detail } }
+      throw err
     }
     return response.body
   }

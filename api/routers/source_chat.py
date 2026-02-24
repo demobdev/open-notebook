@@ -543,7 +543,7 @@ async def send_message_to_source_chat(
                 status_code=404, detail="Session not found for this source"
             )
 
-        if not request.message:
+        if not body.message:
             raise HTTPException(status_code=400, detail="Message content is required")
 
         # Determine model override (request override takes precedence over session override)
