@@ -72,7 +72,7 @@ export function usePodcastEpisodes(options?: { autoRefresh?: boolean }) {
           })
         } else if ((FAILED_EPISODE_STATUSES as string[]).includes(status)) {
           sonnerToast.error(t.podcasts.podcastFailed, {
-            description: t.podcasts.podcastFailedDesc,
+            description: ep.error_message ?? t.podcasts.podcastFailedDesc,
           })
         }
       }
