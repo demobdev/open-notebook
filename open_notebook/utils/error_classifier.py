@@ -42,6 +42,12 @@ _CLASSIFICATION_RULES: list[tuple[list[str], type[OpenNotebookError], str | None
         ConfigurationError,
         None,
     ),
+    # Embedding model misuse - e.g. using gpt-5.2-codex (coding model) for embeddings
+    (
+        ["not allowed to generate embeddings", "does not support embeddings"],
+        ConfigurationError,
+        "The selected model cannot generate embeddings. Go to Settings → API Keys, change the Embedding model to a valid one (e.g. text-embedding-3-small, text-embedding-ada-002 for OpenAI, or mxbai-embed-large for Ollama).",
+    ),
     # Network errors
     (
         ["connecterror", "timeoutexception", "connection refused", "connection error", "timed out", "timeout"],

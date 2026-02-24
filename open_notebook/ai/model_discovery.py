@@ -35,6 +35,7 @@ class DiscoveredModel:
 
 OPENAI_MODEL_TYPES = {
     "language": [
+        "gpt-5",
         "gpt-4",
         "gpt-3.5",
         "o1",
@@ -45,6 +46,7 @@ OPENAI_MODEL_TYPES = {
         "curie",
         "babbage",
         "ada",
+        "codex",  # gpt-5.2-codex etc - coding/agent models, NOT embeddings
     ],
     "embedding": ["text-embedding", "embedding"],
     "speech_to_text": ["whisper"],
