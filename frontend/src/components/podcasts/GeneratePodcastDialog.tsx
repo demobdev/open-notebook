@@ -6,7 +6,7 @@ import { useQueries, useQueryClient } from '@tanstack/react-query'
 
 import { AlertTriangle } from 'lucide-react'
 import { useNotebooks } from '@/lib/hooks/use-notebooks'
-import { useEpisodeProfiles, useGeneratePodcast } from '@/lib/hooks/use-podcasts'
+import { useEpisodeProfiles, useGeneratePodcast, useSpeakerProfiles } from '@/lib/hooks/use-podcasts'
 import { podcastsApi } from '@/lib/api/podcasts'
 import { chatApi } from '@/lib/api/chat'
 import { sourcesApi } from '@/lib/api/sources'
@@ -40,6 +40,61 @@ type SourceMode = 'off' | 'insights' | 'full'
 interface NotebookSelection {
   sources: Record<string, SourceMode>
   notes: Record<string, SourceMode>
+}
+
+function flattenApiDetail(detail: unknown): string | undefined {
+  if (typeof detail === 'string') {
+    return detail
+  }
+
+  if (Array.isArray(detail)) {
+    const parts = detail
+      .map((item) => flattenApiDetail(item))
+      .filter((value): value is string => Boolean(value && value.trim()))
+    return parts.length > 0 ? parts.join('; ') : undefined
+  }
+
+  if (detail && typeof detail === 'object') {
+    const record = detail as Record<string, unknown>
+    return (
+      flattenApiDetail(record.detail) ??
+      flattenApiDetail(record.msg) ??
+      flattenApiDetail(record.message)
+    )
+  }
+
+  return undefined
+}
+
+function getHttpErrorInfo(error: unknown): {
+  status?: number
+  url?: string
+  message?: string
+} {
+  if (!error || typeof error !== 'object') {
+    return {}
+  }
+
+  const err = error as {
+    response?: { status?: number; data?: unknown }
+    config?: { url?: string }
+    message?: string
+  }
+
+  const responseData = err.response?.data as
+    | { detail?: unknown; message?: unknown }
+    | undefined
+
+  const message =
+    flattenApiDetail(responseData?.detail) ??
+    flattenApiDetail(responseData?.message) ??
+    (typeof err.message === 'string' ? err.message : undefined)
+
+  return {
+    status: err.response?.status,
+    url: err.config?.url,
+    message,
+  }
 }
 
 // Helper function to format large numbers with K/M suffixes
@@ -403,6 +458,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
   const [expandedNotebooks, setExpandedNotebooks] = useState<string[]>([])
   const [selections, setSelections] = useState<Record<string, NotebookSelection>>({})
   const [episodeProfileId, setEpisodeProfileId] = useState<string>('')
+  const [speakerProfileOverride, setSpeakerProfileOverride] = useState<string>('')
   const [episodeName, setEpisodeName] = useState('')
   const [instructions, setInstructions] = useState('')
 
@@ -415,15 +471,16 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
 
   const notebooksQuery = useNotebooks()
   const episodeProfilesQuery = useEpisodeProfiles()
+  const episodeProfiles = useMemo(
+    () => episodeProfilesQuery.episodeProfiles ?? [],
+    [episodeProfilesQuery.episodeProfiles]
+  )
+  const { speakerProfiles } = useSpeakerProfiles(episodeProfiles)
   const generatePodcast = useGeneratePodcast()
 
   const notebooks = useMemo(
     () => notebooksQuery.data ?? [],
     [notebooksQuery.data]
-  )
-  const episodeProfiles = useMemo(
-    () => episodeProfilesQuery.episodeProfiles ?? [],
-    [episodeProfilesQuery.episodeProfiles]
   )
 
   // Fetch sources and notes for notebooks using useQueries
@@ -546,6 +603,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
     setExpandedNotebooks([])
     setSelections({})
     setEpisodeProfileId('')
+    setSpeakerProfileOverride('')
     setEpisodeName('')
     setInstructions('')
     setTokenCount(0)
@@ -635,9 +693,19 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
     return episodeProfiles.find((profile) => profile.id === episodeProfileId)
   }, [episodeProfileId, episodeProfiles])
 
-  // Validate config when episode profile changes
+  const effectiveSpeakerProfile = useMemo(() => {
+    if (speakerProfileOverride) return speakerProfileOverride
+    return selectedEpisodeProfile?.speaker_config ?? ''
+  }, [speakerProfileOverride, selectedEpisodeProfile])
+
+  // Reset speaker override when episode profile changes
   useEffect(() => {
-    if (!selectedEpisodeProfile) {
+    setSpeakerProfileOverride('')
+  }, [episodeProfileId])
+
+  // Validate config when episode profile or speaker override changes
+  useEffect(() => {
+    if (!selectedEpisodeProfile || !effectiveSpeakerProfile) {
       setConfigErrors([])
       setConfigWarnings([])
       return
@@ -647,7 +715,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
     setIsValidating(true)
 
     podcastsApi
-      .validateConfig(selectedEpisodeProfile.name, selectedEpisodeProfile.speaker_config)
+      .validateConfig(selectedEpisodeProfile.name, effectiveSpeakerProfile)
       .then((result) => {
         if (cancelled) return
         setConfigErrors(result.errors)
@@ -655,16 +723,29 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
       })
       .catch((err: unknown) => {
         if (cancelled) return
+        const { status, url, message } = getHttpErrorInfo(err)
+
+        // Backward compatibility: older backends (e.g. Docker image) may not have this endpoint.
+        // Treat 404 on validate-config as "validation unavailable" — no console error, just a warning.
+        const isValidateConfigRequest =
+          status === 404 &&
+          (typeof url === 'string' ? url.includes('validate-config') : true)
+        if (isValidateConfigRequest) {
+          setConfigErrors([])
+          setConfigWarnings([{
+            field: 'api',
+            message: 'Pre-flight config validation is unavailable on this backend version. Generation is still allowed; config errors will appear when you submit.',
+          }])
+          return
+        }
+
         console.error('Config validation failed:', err)
-        // Surface API error (e.g. 404: profile not found) so user knows why
-        const detail = err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { detail?: string | Array<{ msg: string }> } } }).response?.data?.detail
-          : undefined
-        const msg = typeof detail === 'string'
-          ? detail
-          : Array.isArray(detail) && detail.length > 0
-            ? detail.map((d) => (typeof d === 'object' && d?.msg) || String(d)).join('; ')
-            : 'Could not validate config. Episode or speaker profile may not exist in this environment.'
+        const msg =
+          message && message.length > 0
+            ? message
+            : status === 404
+              ? `Episode profile "${selectedEpisodeProfile.name}" or speaker profile "${effectiveSpeakerProfile}" not found. Create them under Podcasts → Templates, or switch to an environment where they exist.`
+              : 'Could not validate config. Episode or speaker profile may not exist in this environment.'
         setConfigErrors([{ field: 'api', message: msg }])
         setConfigWarnings([])
       })
@@ -673,7 +754,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
       })
 
     return () => { cancelled = true }
-  }, [selectedEpisodeProfile])
+  }, [selectedEpisodeProfile, effectiveSpeakerProfile])
 
   const selectedNotebookSummaries = useMemo(() => {
     return notebooks.map((notebook) => {
@@ -859,7 +940,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
 
       const payload: PodcastGenerationRequest = {
         episode_profile: selectedEpisodeProfile.name,
-        speaker_profile: selectedEpisodeProfile.speaker_config,
+        speaker_profile: effectiveSpeakerProfile,
         episode_name: episodeName.trim(),
         content,
         briefing_suffix: instructions.trim() ? instructions.trim() : undefined,
@@ -877,14 +958,14 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
 
       // Extract the real error message from Axios/FastAPI response
       let errorMessage = t.common.refreshPage
-      const axiosError = error as { response?: { data?: { detail?: string }, status?: number }, message?: string }
-      if (axiosError?.response?.data?.detail) {
-        errorMessage = axiosError.response.data.detail
+      const { status, message } = getHttpErrorInfo(error)
+      if (message) {
+        errorMessage = message
       } else if (error instanceof Error) {
         errorMessage = error.message
       }
 
-      const isConfigError = axiosError?.response?.status === 400
+      const isConfigError = status === 400 || status === 422
       toast({
         title: isConfigError ? t.podcasts.configError : t.podcasts.generationFailed,
         description: errorMessage,
@@ -895,6 +976,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
     }
   }, [
     buildContentFromSelections,
+    effectiveSpeakerProfile,
     episodeName,
     generatePodcast,
     instructions,
@@ -974,12 +1056,32 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
                         ))}
                       </SelectContent>
                     </Select>
-                    {selectedEpisodeProfile && (
-                      <p className="text-xs text-muted-foreground">
-                        {t.podcasts.usesSpeakerProfile}{' '}
-                        <strong>{selectedEpisodeProfile.speaker_config}</strong>
-                      </p>
-                    )}
+                    {selectedEpisodeProfile ? (
+                      <div className="space-y-2">
+                        <Label htmlFor="speaker_profile">{t.podcasts.speakerProfile}</Label>
+                        <Select
+                          value={speakerProfileOverride || '__default__'}
+                          onValueChange={(v) => setSpeakerProfileOverride(v === '__default__' ? '' : v)}
+                          disabled={speakerProfiles.length === 0}
+                        >
+                          <SelectTrigger id="speaker_profile">
+                            <SelectValue placeholder={t.podcasts.selectSpeakerProfile} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__default__">
+                              {t.podcasts.useEpisodeDefault}{' '}({selectedEpisodeProfile.speaker_config})
+                            </SelectItem>
+                            {speakerProfiles
+                              .filter((sp) => sp.name !== selectedEpisodeProfile.speaker_config)
+                              .map((sp) => (
+                                <SelectItem key={sp.id} value={sp.name}>
+                                  {sp.name}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : null}
                     {configErrors.length > 0 && (
                       <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 space-y-1">
                         <div className="flex items-center gap-1.5 text-xs font-semibold text-destructive">

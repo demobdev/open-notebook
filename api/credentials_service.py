@@ -489,16 +489,13 @@ async def test_credential(credential_id: str) -> dict:
         elif "403" in str(e) or "forbidden" in error_msg:
             return {"provider": provider, "success": False, "message": "API key lacks required permissions"}
         elif any(kw in error_msg for kw in ("quota", "quota_exceeded", "insufficient", "402", "payment")):
-            return {
-                "provider": provider,
-                "success": False,
-                "message": (
-                    "Out of credits or subscription issue. This is a billing problem with your "
-                    "provider account, not the app. Add credits or renew at elevenlabs.io/app/usage"
-                    if provider == "elevenlabs"
-                    else "Out of credits or subscription issue. Check your provider billing/usage page."
-                ),
-            }
+            if provider == "elevenlabs":
+                msg = "Out of credits or subscription issue. Add credits at elevenlabs.io/app/usage"
+            elif provider == "openai":
+                msg = "Out of credits or subscription issue. Check usage and add payment at platform.openai.com/usage"
+            else:
+                msg = "Out of credits or subscription issue. Check your provider billing/usage page."
+            return {"provider": provider, "success": False, "message": msg}
         elif "rate" in error_msg and "limit" in error_msg:
             return {"provider": provider, "success": True, "message": "Rate limited - but connection works"}
         elif "not found" in error_msg and "model" in error_msg:

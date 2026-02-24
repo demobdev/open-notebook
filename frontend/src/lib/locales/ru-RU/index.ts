@@ -650,6 +650,8 @@ export const ruRU = {
     briefing: "Брифинг",
     noOutline: "План недоступен.",
     noTranscript: "Транскрипт недоступен.",
+    outlineLoadingDesc: "План появится по завершении генерации.",
+    transcriptLoadingDesc: "Транскрипт появится по завершении генерации.",
     deleteEpisodeTitle: "Удалить эпизод?",
     deleteEpisodeDesc: "Это навсегда удалит «{name}» и его аудиофайл.",
     audioUnavailable: "Аудио недоступно",

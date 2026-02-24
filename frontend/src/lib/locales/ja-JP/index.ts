@@ -650,6 +650,8 @@ export const jaJP = {
     briefing: "ブリーフィング",
     noOutline: "アウトラインがありません。",
     noTranscript: "トランスクリプトがありません。",
+    outlineLoadingDesc: "生成が完了するとアウトラインが表示されます。",
+    transcriptLoadingDesc: "生成が完了するとトランスクリプトが表示されます。",
     deleteEpisodeTitle: "エピソードを削除しますか？",
     deleteEpisodeDesc: "「{name}」とその音声ファイルを完全に削除します。",
     audioUnavailable: "音声が利用できません",

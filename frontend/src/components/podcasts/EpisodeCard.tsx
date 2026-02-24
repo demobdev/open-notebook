@@ -388,6 +388,11 @@ export function EpisodeCard({ episode, onDelete, deleting, onRetry, retrying }: 
                               </div>
                             ))}
                           </div>
+                        ) : isActive ? (
+                          <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground">{t.podcasts.outlineLoadingDesc}</p>
+                          </div>
                         ) : (
                           <p className="text-xs text-muted-foreground">{t.podcasts.noOutline}</p>
                         )}
@@ -403,6 +408,11 @@ export function EpisodeCard({ episode, onDelete, deleting, onRetry, retrying }: 
                               <p className="text-muted-foreground whitespace-pre-wrap">{entry.dialogue ?? ''}</p>
                             </div>
                           ))
+                        ) : isActive ? (
+                          <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground">{t.podcasts.transcriptLoadingDesc}</p>
+                          </div>
                         ) : (
                           <p className="text-xs text-muted-foreground">{t.podcasts.noTranscript}</p>
                         )}

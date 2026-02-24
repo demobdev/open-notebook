@@ -650,6 +650,8 @@ export const zhTW = {
     briefing: "內容簡報",
     noOutline: "暫無大綱。",
     noTranscript: "暫無腳本。",
+    outlineLoadingDesc: "生成完成後將顯示大綱。",
+    transcriptLoadingDesc: "生成完成後將顯示腳本。",
     deleteEpisodeTitle: "刪除單集？",
     deleteEpisodeDesc: "這將永久移除 “{name}” 及其音訊檔案。",
     audioUnavailable: "音訊不可用",

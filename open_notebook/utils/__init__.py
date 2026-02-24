@@ -28,6 +28,7 @@ from .encryption import (
 )
 from .text_utils import (
     clean_thinking_content,
+    extract_json_from_model_output,
     parse_thinking_content,
     remove_non_ascii,
     remove_non_printable,
@@ -56,6 +57,7 @@ __all__ = [
     "remove_non_printable",
     "parse_thinking_content",
     "clean_thinking_content",
+    "extract_json_from_model_output",
     # Token utils
     "token_count",
     "token_cost",

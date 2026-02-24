@@ -650,6 +650,8 @@ export const itIT = {
     briefing: "Briefing",
     noOutline: "Nessun outline disponibile.",
     noTranscript: "Nessuna trascrizione disponibile.",
+    outlineLoadingDesc: "L'outline apparirà al termine della generazione.",
+    transcriptLoadingDesc: "La trascrizione apparirà al termine della generazione.",
     deleteEpisodeTitle: "Eliminare l'episodio?",
     deleteEpisodeDesc: "Questo rimuoverà \"{name}\" e il suo file audio permanentemente.",
     audioUnavailable: "Audio non disponibile",

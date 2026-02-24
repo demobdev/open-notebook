@@ -10,6 +10,7 @@ import pytest
 from open_notebook.utils import (
     clean_thinking_content,
     compare_versions,
+    extract_json_from_model_output,
     get_installed_version,
     parse_thinking_content,
     remove_non_ascii,
@@ -116,6 +117,25 @@ class TestTextUtilities:
         # Should return unchanged due to size limit
         assert thinking == ""
         assert cleaned == large_content
+
+    def test_extract_json_from_model_output_strips_thinking(self):
+        """extract_json_from_model_output strips <think> and returns rest."""
+        content = "<think>Reasoning here</think>\n{\"segments\": []}"
+        result = extract_json_from_model_output(content)
+        assert result == "{\"segments\": []}"
+
+    def test_extract_json_from_model_output_unwraps_code_block(self):
+        """extract_json_from_model_output unwraps ```json ... ```."""
+        content = "Here is the result:\n```json\n{\"segments\": [{}]}\n```"
+        result = extract_json_from_model_output(content)
+        assert "{\"segments\": [{}]}" in result
+        assert "```" not in result
+
+    def test_extract_json_from_model_output_plain_passthrough(self):
+        """extract_json_from_model_output returns cleaned content when no code block."""
+        content = "{\"segments\": []}"
+        result = extract_json_from_model_output(content)
+        assert result == "{\"segments\": []}"
 
     def test_clean_thinking_content(self):
         """Test convenience function for cleaning thinking content."""

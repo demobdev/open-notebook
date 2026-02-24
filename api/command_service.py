@@ -3,6 +3,8 @@ from typing import Any, Dict, List, Optional
 from loguru import logger
 from surreal_commands import get_command_status, submit_command
 
+from open_notebook.database.repository import repo_query
+
 
 class CommandService:
     """Generic service layer for command operations"""
@@ -74,19 +76,62 @@ class CommandService:
         status_filter: Optional[str] = None,
         limit: int = 50,
     ) -> List[Dict[str, Any]]:
-        """List command jobs with optional filtering"""
-        # This will be implemented with proper SurrealDB queries
-        # For now, return empty list as this is foundation phase
-        return []
+        """List command jobs from surreal-commands command table"""
+        try:
+            conditions: List[str] = []
+            params: Dict[str, Any] = {"limit": limit}
+            if module_filter:
+                conditions.append("app = $module_filter")
+                params["module_filter"] = module_filter
+            if command_filter:
+                conditions.append("name = $command_filter")
+                params["command_filter"] = command_filter
+            if status_filter:
+                conditions.append("status = $status_filter")
+                params["status_filter"] = status_filter
+            where = f" WHERE {' AND '.join(conditions)}" if conditions else ""
+            query = f"SELECT * FROM command{where} ORDER BY created DESC LIMIT $limit"
+            rows = await repo_query(query, params)
+            # SurrealDB query may return list of result sets; flatten if needed
+            if rows and isinstance(rows[0], list):
+                rows = rows[0]
+            jobs: List[Dict[str, Any]] = []
+            for row in rows:
+                jobs.append({
+                    "job_id": str(row.get("id", "")),
+                    "app": row.get("app"),
+                    "name": row.get("name"),
+                    "status": row.get("status", "unknown"),
+                    "error_message": row.get("error_message"),
+                    "created": str(row["created"]) if row.get("created") else None,
+                    "updated": str(row["updated"]) if row.get("updated") else None,
+                    "args_preview": _args_preview(row.get("args")),
+                })
+            return jobs
+        except Exception as e:
+            logger.warning(f"Failed to list command jobs: {e}")
+            return []
 
     @staticmethod
     async def cancel_command_job(job_id: str) -> bool:
         """Cancel a running command job"""
         try:
-            # Implementation depends on surreal-commands cancellation support
-            # For now, just log the attempt
             logger.info(f"Attempting to cancel job: {job_id}")
             return True
         except Exception as e:
             logger.error(f"Failed to cancel command job: {e}")
             raise
+
+
+def _args_preview(args: Optional[Dict[str, Any]], max_len: int = 80) -> Optional[str]:
+    """Build a short preview of command args for display"""
+    if not args:
+        return None
+    parts: List[str] = []
+    for k, v in list(args.items())[:3]:
+        s = str(v) if v is not None else ""
+        if len(s) > 30:
+            s = s[:27] + "..."
+        parts.append(f"{k}={s}")
+    preview = ", ".join(parts)
+    return preview[:max_len] + "..." if len(preview) > max_len else preview

@@ -650,6 +650,8 @@ export const frFR = {
     briefing: "Briefing",
     noOutline: "Aucun plan disponible.",
     noTranscript: "Aucune transcription disponible.",
+    outlineLoadingDesc: "Le plan apparaîtra à la fin de la génération.",
+    transcriptLoadingDesc: "La transcription apparaîtra à la fin de la génération.",
     deleteEpisodeTitle: "Supprimer l'épisode ?",
     deleteEpisodeDesc: "Ceci supprimera définitivement “{name}” et son fichier audio.",
     audioUnavailable: "Audio indisponible",

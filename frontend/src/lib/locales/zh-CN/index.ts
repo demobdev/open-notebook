@@ -650,6 +650,8 @@ export const zhCN = {
     briefing: "内容简报",
     noOutline: "暂无大纲。",
     noTranscript: "暂无脚本。",
+    outlineLoadingDesc: "生成完成后将显示大纲。",
+    transcriptLoadingDesc: "生成完成后将显示脚本。",
     deleteEpisodeTitle: "删除单集？",
     deleteEpisodeDesc: "这将永久移除 “{name}” 及其音频文件。",
     audioUnavailable: "音频不可用",

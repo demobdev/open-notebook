@@ -329,20 +329,24 @@ async def validate_podcast_configuration(
     """
     Pre-flight validation for podcast generation configuration.
     Returns errors/warnings without starting a job.
+    Returns 200 with validation errors (not 404) when profiles are missing,
+    so the frontend gets structured data instead of an Axios error.
     """
     ep = await EpisodeProfile.get_by_name(body.episode_profile)
     if not ep:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Episode profile '{body.episode_profile}' not found",
-        )
+        return {
+            "valid": False,
+            "errors": [{"field": "episode_profile", "message": f"Episode profile '{body.episode_profile}' not found. Create it under Podcasts → Templates."}],
+            "warnings": [],
+        }
 
     sp = await SpeakerProfile.get_by_name(body.speaker_profile)
     if not sp:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Speaker profile '{body.speaker_profile}' not found",
-        )
+        return {
+            "valid": False,
+            "errors": [{"field": "speaker_profile", "message": f"Speaker profile '{body.speaker_profile}' not found. Create it under Podcasts → Templates."}],
+            "warnings": [],
+        }
 
     result = validate_podcast_config(ep.model_dump(), sp.model_dump())
     return result.to_dict()

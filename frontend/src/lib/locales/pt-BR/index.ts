@@ -650,6 +650,8 @@ export const ptBR = {
     briefing: "Briefing",
     noOutline: "Nenhum outline disponível.",
     noTranscript: "Nenhuma transcrição disponível.",
+    outlineLoadingDesc: "O outline aparecerá quando a geração for concluída.",
+    transcriptLoadingDesc: "A transcrição aparecerá quando a geração for concluída.",
     deleteEpisodeTitle: "Excluir episódio?",
     deleteEpisodeDesc: "Isso removerá \"{name}\" e seu arquivo de áudio permanentemente.",
     audioUnavailable: "Áudio indisponível",

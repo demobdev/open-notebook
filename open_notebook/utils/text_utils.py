@@ -119,6 +119,33 @@ def clean_thinking_content(content: str) -> str:
     return cleaned_content
 
 
+# Match ```json or ``` followed by optional newline and content until closing ```
+_CODE_BLOCK_PATTERN = re.compile(r"```(?:json)?\s*\n?(.*?)```", re.DOTALL)
+
+
+def extract_json_from_model_output(content: str) -> str:
+    """
+    Prepare LLM output for JSON parsing: strip <think> blocks and optional markdown code fences.
+
+    Use this before passing model output to a JSON/Pydantic parser to avoid
+    "Invalid json output" when the model wraps JSON in <think> or in ```json ... ```.
+
+    Args:
+        content: Raw string from the LLM (may include <think> or code blocks).
+
+    Returns:
+        String suitable for JSON parsing (thinking removed, code block unwrapped).
+    """
+    if not isinstance(content, str) or not content.strip():
+        return content if isinstance(content, str) else ""
+    _, cleaned = parse_thinking_content(content)
+    cleaned = cleaned.strip()
+    match = _CODE_BLOCK_PATTERN.search(cleaned)
+    if match:
+        return match.group(1).strip()
+    return cleaned
+
+
 def extract_text_content(content) -> str:
     """Extract text from LLM response content.
 

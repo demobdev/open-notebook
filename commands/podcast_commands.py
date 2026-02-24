@@ -12,6 +12,11 @@ from open_notebook.podcasts.models import EpisodeProfile, PodcastEpisode, Speake
 
 try:
     from podcast_creator import configure, create_podcast
+    import podcast_creator.core as _pc_core
+    from open_notebook.utils.text_utils import extract_json_from_model_output
+
+    # Patch so outline/transcript parsing gets robust JSON extraction (strip <think> + ``` code blocks)
+    _pc_core.clean_thinking_content = extract_json_from_model_output
 except ImportError as e:
     logger.error(f"Failed to import podcast_creator: {e}")
     raise ValueError("podcast_creator library not available")
@@ -58,13 +63,15 @@ async def generate_podcast_command(
 
     try:
         # Provision API keys from database into environment variables
-        # podcast-creator reads OPENAI_API_KEY / ELEVENLABS_API_KEY from env
+        # podcast-creator and LLM calls read keys from env (OPENAI, GOOGLE, GROQ, ELEVENLABS, etc.)
         import os
 
         from open_notebook.ai.key_provider import provision_provider_keys
 
         await provision_provider_keys("openai")
         await provision_provider_keys("elevenlabs")
+        await provision_provider_keys("google")
+        await provision_provider_keys("groq")
 
         logger.info(
             f"Starting podcast generation for episode: {input_data.episode_name}"
@@ -78,16 +85,35 @@ async def generate_podcast_command(
                 f"Episode profile '{input_data.episode_profile}' not found"
             )
 
+        # Use speaker from input (allows override at generation time)
         speaker_profile = await SpeakerProfile.get_by_name(
-            episode_profile.speaker_config
+            input_data.speaker_profile
         )
         if not speaker_profile:
             raise ValueError(
-                f"Speaker profile '{episode_profile.speaker_config}' not found"
+                f"Speaker profile '{input_data.speaker_profile}' not found"
             )
 
         logger.info(f"Loaded episode profile: {episode_profile.name}")
         logger.info(f"Loaded speaker profile: {speaker_profile.name}")
+
+        # Fail fast if LLM provider's API key is missing (outline/transcript use these)
+        outline_provider = (episode_profile.outline_provider or "").lower()
+        transcript_provider = (episode_profile.transcript_provider or "").lower()
+        def _has_google_key():
+            return bool(os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY"))
+
+        for provider, label, has_key in [
+            ("google", "Google (Gemini)", _has_google_key),
+            ("groq", "Groq", lambda: bool(os.environ.get("GROQ_API_KEY"))),
+        ]:
+            if outline_provider == provider or transcript_provider == provider:
+                if not has_key():
+                    env_hint = "GOOGLE_API_KEY or GEMINI_API_KEY" if provider == "google" else "GROQ_API_KEY"
+                    raise ValueError(
+                        f"{label} API key not found. Set {env_hint} in your .env.local (or add a {label} credential in Settings → API Keys), "
+                        "then restart the API/worker so it picks up the new env."
+                    )
 
         # Fail fast if TTS provider's API key is missing
         tts_provider = (speaker_profile.tts_provider or "").lower()

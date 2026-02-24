@@ -4,6 +4,184 @@ Common problems with 1-minute solutions.
 
 ---
 
+## #0: Clerk "Missing environment keys" or "auth() was called but Clerk can't detect clerkMiddleware()"
+
+**Symptom:** Error page shows "Missing environment keys" and/or "Clerk: auth() was called but Clerk can't detect usage of clerkMiddleware()"
+
+**Cause:** Clerk API keys not loaded by the frontend. Next.js 16 uses `proxy.ts` only (no `middleware.ts`); Clerk runs via `clerkMiddleware()` in `src/proxy.ts`.
+
+**Solution (1 minute):**
+
+1. **Set Clerk keys for the frontend**  
+   When running the dev server from `frontend/` (`cd frontend && npm run dev`), Next.js loads env from `frontend/`, not the repo root. Add a `frontend/.env.local` with:
+   ```bash
+   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+   CLERK_SECRET_KEY=sk_test_...
+   NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+   NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+   ```
+   Get the keys from [Clerk Dashboard](https://dashboard.clerk.com) → your application → API Keys.
+
+2. **If you use a single root `.env.local`**  
+   Either copy the Clerk variables above into `frontend/.env.local`, or run the frontend from the repo root so the root `.env.local` is in the same directory (e.g. `npm run dev --prefix frontend` from root).
+
+3. **Restart the dev server** after changing env.
+
+**If still broken:**  
+- Confirm `src/proxy.ts` exists and uses `clerkMiddleware()` (Next.js 16 uses proxy only).  
+- See [Clerk Next.js quickstart](https://clerk.com/docs/quickstarts/nextjs).
+
+---
+
+## #0a: Get Docker working ("command not found: docker")
+
+**Symptom:** `zsh: command not found: docker` when running `docker compose` or `make database`.
+
+**Cause:** Docker Desktop is installed but the `docker` CLI isn’t on your shell’s PATH (common if the terminal was opened before Docker was installed or restarted).
+
+**Fix (pick one):**
+
+1. **Use a new terminal**  
+   Quit the terminal app and open a new window, or open a new tab. Then run:
+   ```bash
+   docker compose up -d surrealdb
+   ```
+
+2. **Add Docker to PATH in this shell**  
+   Docker Desktop on Mac usually installs the CLI in `/usr/local/bin`. Run:
+   ```bash
+   export PATH="/usr/local/bin:$PATH"
+   docker compose up -d surrealdb
+   ```
+
+3. **Make it permanent in zsh**  
+   Add the same line to your shell config so every new terminal has `docker`:
+   ```bash
+   echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.zshrc
+   source ~/.zshrc
+   ```
+
+4. **If Docker put the CLI elsewhere**  
+   If you chose a custom install path (e.g. `~/.docker/bin`), use that in the `export` instead:
+   ```bash
+   export PATH="$HOME/.docker/bin:$PATH"
+   ```
+
+**Check:** Run `docker --version`. If that works, then `make database` or `docker compose up -d surrealdb` will work from the project root.
+
+**Alternative (no PATH change):** From the project root you can use the helper script, which looks for Docker in common install locations:
+   ```bash
+   ./scripts/docker-compose.sh up -d surrealdb
+   ```
+
+---
+
+## #0b: "command not found: docker" — Run without Docker
+
+**Symptom:** `zsh: command not found: docker` when running `docker compose` or `make database`.
+
+**Cause:** Docker isn't installed or isn't on your PATH (e.g. Docker Desktop not running).
+
+**Option 1 — Fix Docker (if you use it)**  
+- Install [Docker Desktop](https://docs.docker.com/desktop/install/) or add Docker to your PATH.  
+- Then: `docker compose up -d surrealdb` and continue with API + frontend as usual.
+
+**Option 2 — Run without Docker (SurrealDB binary)**  
+Use a local SurrealDB server instead of Docker:
+
+1. **Install SurrealDB** (macOS):
+   ```bash
+   brew install surrealdb/tap/surreal
+   ```
+   Or: `curl -sSf https://install.surrealdb.com | sh`
+
+2. **Start SurrealDB** (in its own terminal; leave it running):
+   ```bash
+   mkdir -p surreal_data
+   surreal start --log info --user root --pass root --bind 0.0.0.0:8000 file:./surreal_data/surreal.db
+   ```
+
+3. **Point the API at localhost** — in your project root `.env` or `.env.local` set:
+   ```bash
+   SURREAL_URL=ws://127.0.0.1:8000/rpc
+   SURREAL_USER=root
+   SURREAL_PASSWORD=root
+   SURREAL_NAMESPACE=open_notebook
+   SURREAL_DATABASE=open_notebook
+   ```
+
+4. **Start the app** (from project root):
+   ```bash
+   uv run run_api.py
+   ```
+   In another terminal: `uv run --env-file .env surreal-commands-worker --import-modules commands`  
+   In a third: `cd frontend && npm run dev`
+
+5. Open **http://localhost:3000** and **http://localhost:5055/docs**.
+
+---
+
+## #0c: OpenAI API failed / "insufficient_quota" / "Why do I owe money?"
+
+**Symptom:** OpenAI requests fail with "insufficient_quota", 429, or a billing-related error. The app shows "Configured" (key loaded) but calls fail.
+
+**Cause:** Your OpenAI key is valid but your **account has no remaining credits** or you've hit a usage limit. This is an **OpenAI account billing** issue, not an app bug.
+
+**What to do:**
+
+1. **Check usage and billing**
+   - Open **https://platform.openai.com/usage** (log in with the account that owns the API key).
+   - See how much you've used and whether you have credits or a paid subscription.
+
+2. **Add payment or credits**
+   - Go to **https://platform.openai.com/settings/organization/billing** (or the Billing section in your OpenAI account).
+   - Add a payment method or buy credits so new requests can go through.
+
+3. **"Owe money"**
+   - If you have **usage-based billing**, you pay for what you use; past usage may show as owed until the next invoice.
+   - If you see **insufficient_quota** or **429**, the account is out of credits or over limit until you add payment or wait for the limit to reset.
+
+4. **In the app**
+   - After fixing billing, try **Settings → API Keys → Test** on your OpenAI credential.
+   - If tests pass, chat, embeddings, and podcast (outline/transcript/TTS when using OpenAI) should work again.
+
+**References:** [OpenAI Usage](https://platform.openai.com/usage) · [OpenAI Billing](https://platform.openai.com/settings/organization/billing)
+
+---
+
+## #0d: "Pre-flight config validation is unavailable" / 404 on validate-config
+
+**Symptom:** Generate Podcast dialog shows an orange warning "Pre-flight config validation is unavailable on this backend version" and the browser console may show `AxiosError: Request failed with status code 404` for `/podcasts/validate-config`.
+
+**Cause:** The API you're hitting (e.g. the Docker container `open_notebook:local`) was built from an image that doesn't include the validate-config endpoint, or the API is an older version.
+
+**What it means:** Validation is optional. You can still click **Generate**; if the episode or speaker profile is wrong, the backend will report that when you submit. The warning is informational.
+
+**To get pre-flight validation (optional):** Run the API from source so it has the latest routes: from the project root run `uv run run_api.py` instead of using the Docker API container. Or rebuild the Docker image so it includes the current `api/routers/podcasts.py` (with `POST /api/podcasts/validate-config`).
+
+---
+
+## #0e: "No outline available" / "No transcript" in podcast Details
+
+**Symptom:** A podcast episode appears in the list (or shows as completed) but in **Details** the Outline and Transcript tabs say "No outline available" / "No transcript".
+
+**Cause:** The episode record was created when you started the job, but the **job failed** before outline/transcript were generated (e.g. "Invalid json output", API key error, or TTS failure). We only save outline and transcript when the full pipeline succeeds. So that episode row is from a failed run and was never updated with outline/transcript.
+
+**What to do:**
+
+1. **Check job status** — In the list, look at **Failed** count and **Completed**. Episodes that completed successfully will have outline and transcript; ones that failed won't.
+2. **Retry with a working config** — Fix the underlying error (e.g. use gpt-4o or gpt-4o-mini for outline/transcript if you saw "Invalid json output"; set `GOOGLE_API_KEY` and recreate the container if you saw "Google API key not found"). Then **generate a new episode** (new name). The new run should save outline and transcript when it succeeds.
+3. **Verify after a successful run** — Open **Details** on a **completed** episode; Outline and Transcript tabs should show content. If they don't, run the local test below.
+
+**Local testing before push:** From project root run the podcast generation tests, then trigger one real generation and confirm in the UI that the new episode's Details show outline and transcript:
+
+```bash
+uv run pytest tests/test_podcast_generation.py -v
+# Then generate one episode in the app and open Details → Outline / Transcript
+```
+
+---
+
 ## #1: "Cannot connect to server"
 
 **Symptom:** Browser shows error "Cannot connect to server" or "Unable to reach API"
