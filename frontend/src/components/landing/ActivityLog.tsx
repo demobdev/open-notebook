@@ -2,7 +2,7 @@
 
 import { Play, Pause, Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 const LOG_LINES = [
   { id: 1, time: '[10:23:45]', status: 'UPLOAD', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', text: '3 sources added to "Q1 Research"', active: false },
@@ -18,7 +18,7 @@ export function ActivityLog() {
   const [showPlayer, setShowPlayer] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [audio, setAudio] = useState<HTMLAudioElement | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -40,40 +40,42 @@ export function ActivityLog() {
 
     return () => {
       clearInterval(interval)
-      if (audio) {
-        audio.pause()
-        audio.src = ""
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.src = ""
       }
     }
-  }, [audio])
+  }, [])
 
   const handleTogglePlay = () => {
-    if (!audio) {
+    if (!audioRef.current) {
       setIsLoading(true)
       const newAudio = new Audio('/the-energy-code-photobiomodulation.mp3')
+      audioRef.current = newAudio
       
-      newAudio.oncanplaythrough = () => {
-        setIsLoading(false)
-        newAudio.play()
-        setIsPlaying(true)
+      // Safari requires synchronous play() relative to user interaction
+      const playPromise = newAudio.play()
+      
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          setIsLoading(false)
+          setIsPlaying(true)
+        }).catch(error => {
+          console.error("Audio playback failed:", error)
+          setIsLoading(false)
+        })
       }
 
       newAudio.onended = () => {
         setIsPlaying(false)
       }
 
-      newAudio.onerror = () => {
-        setIsLoading(false)
-        alert('Demo audio file not found. Please ensure it is uploaded to the public directory.')
-      }
-
-      setAudio(newAudio)
     } else {
       if (isPlaying) {
-        audio.pause()
+        audioRef.current.pause()
         setIsPlaying(false)
       } else {
-        audio.play()
+        audioRef.current.play().catch(console.error)
         setIsPlaying(true)
       }
     }

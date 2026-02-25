@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 
 import { Header } from '@/components/landing/Header'
 import { Hero } from '@/components/landing/Hero'
+import { ProductPreview } from '@/components/landing/ProductPreview'
 import { BentoGrid } from '@/components/landing/BentoGrid'
 import { ActivityLog } from '@/components/landing/ActivityLog'
 import { ValueProps } from '@/components/landing/ValueProps'
@@ -33,6 +34,7 @@ export default async function HomePage() {
       <Header />
       <main className="flex flex-col">
         <Hero />
+        <ProductPreview />
         <BentoGrid />
         <ValueProps />
         <FeaturesGrid />

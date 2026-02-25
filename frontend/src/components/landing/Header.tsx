@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { SignInButton, SignUpButton } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/ThemeToggle'
 
@@ -20,12 +21,16 @@ export function Header() {
 
         <div className="flex items-center gap-4">
           <ThemeToggle />
-          <Link href="/sign-in" className="hidden text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground sm:block">
-            Sign In
-          </Link>
-          <Button asChild size="sm" className="h-[28px] rounded-full bg-[#3b82f6]/10 text-[#3b82f6] hover:bg-[#3b82f6]/20 px-4 text-[13px] font-medium border border-[#3b82f6]/20">
-            <Link href="/sign-up">Get Started</Link>
-          </Button>
+          <SignInButton mode="modal">
+            <button className="hidden text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground sm:block">
+              Sign In
+            </button>
+          </SignInButton>
+          <SignUpButton mode="modal">
+            <Button size="sm" className="h-[28px] rounded-full bg-[#3b82f6]/10 text-[#3b82f6] hover:bg-[#3b82f6]/20 px-4 text-[13px] font-medium border border-[#3b82f6]/20">
+              Get Started
+            </Button>
+          </SignUpButton>
         </div>
       </div>
     </header>
