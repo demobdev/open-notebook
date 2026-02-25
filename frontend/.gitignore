@@ -43,3 +43,6 @@ next-env.d.ts
 doc_exports/
 # clerk configuration (can include secrets)
 /.clerk/
+
+# Temp screenshots
+public/screencapture-*.png

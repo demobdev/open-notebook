@@ -45,7 +45,7 @@ export default function SignInPage() {
         <SignInWithPrism />
         
         {/* Legal Links */}
-        <div className="mt-8 flex items-center gap-6 text-xs text-white/40">
+        <div className="mt-8 flex items-center gap-6 text-xs text-white/60">
           <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
           <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
         </div>

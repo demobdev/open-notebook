@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { SignIn } from '@clerk/nextjs'
 
 const clerkAppearance = {
@@ -36,7 +37,10 @@ export function SignInCard() {
         />
       </div>
       <p className="mt-6 text-xs text-muted-foreground">
-        By signing in, you agree to our Terms of Service and Privacy Policy.
+        By signing in, you agree to our{' '}
+          <Link href="/terms" className="underline hover:text-foreground transition-colors">Terms of Service</Link>
+          {' '}and{' '}
+          <Link href="/privacy" className="underline hover:text-foreground transition-colors">Privacy Policy</Link>.
       </p>
     </div>
   )
