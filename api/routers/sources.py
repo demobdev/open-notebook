@@ -208,6 +208,10 @@ async def get_sources(
             )
         else:
             # Query all sources - include command field with FETCH
+            # Auto-claim any orphaned sources for the current user to fix previous missing user_id bugs
+            if not is_admin(user_id):
+                await repo_query("UPDATE source SET user_id = $user_id WHERE user_id IS NONE OR type(user_id) = 'null'", {"user_id": user_id})
+
             user_filter = "" if is_admin(user_id) else " WHERE user_id = $user_id"
             query = f"""
                 SELECT id, asset, created, title, updated, topics, command,
@@ -369,6 +373,7 @@ async def create_source(
             source = Source(
                 title=source_data.title or "Processing...",
                 topics=[],
+                user_id=user_id,
             )
             await source.save()
 
@@ -448,6 +453,7 @@ async def create_source(
                 source = Source(
                     title=source_data.title or "Processing...",
                     topics=[],
+                    user_id=user_id,
                 )
                 await source.save()
 
