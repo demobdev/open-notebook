@@ -1,15 +1,37 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+
+const SCREENSHOTS = [
+  { src: "/config.png", alt: "AI Model & API Key Configuration" },
+  { src: "/sources.png", alt: "All Sources Dashboard" },
+  { src: "/workspace.png", alt: "Notebook Workspace Overview" },
+  { src: "/podcast.png", alt: "Podcast Generation Workspace" },
+  { src: "/podcast-modal.png", alt: "Podcast Generation Modal" },
+];
 
 export function ProductPreview() {
   const { resolvedTheme } = useTheme();
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIndex((prevIndex) => (prevIndex + 2) % SCREENSHOTS.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Determine the next two images to show
+  // If we are at the last image (odd number length), we loop around to the first image for the second slot
+  const firstImage = SCREENSHOTS[currentIndex];
+  const secondImage = SCREENSHOTS[(currentIndex + 1) % SCREENSHOTS.length];
 
   return (
     <section className="relative overflow-hidden bg-background py-16 -mt-16 sm:-mt-24 z-20">
-      <div className="container relative mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8">
+      <div className="container relative mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -32,26 +54,49 @@ export function ProductPreview() {
             </div>
           </div>
 
-          {/* Screenshot container */}
-          <div className="relative aspect-[16/10] bg-muted/20">
-            {/* The user can drop their unified screenshot here, we use a placeholder that falls back to a clean background if not found */}
-            <Image
-              src="/dashboard-preview.png"
-              alt="Audioprism Studio Interface"
-              fill
-              className="object-cover object-top opacity-0 transition-opacity duration-500"
-              onLoadingComplete={(img) => img.classList.remove("opacity-0")}
-              priority
-            />
-            {/* Fallback pattern while waiting for the user's screenshot */}
-            <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] flex items-center justify-center flex-col gap-4 text-muted-foreground">
-                <div className="flex gap-4 opacity-50">
-                    <div className="w-12 h-12 rounded-xl bg-border animate-pulse" />
-                    <div className="w-12 h-12 rounded-xl bg-border animate-pulse delay-100" />
-                    <div className="w-12 h-12 rounded-xl bg-border animate-pulse delay-200" />
-                </div>
-                <p className="text-sm">Place your screenshot at <code className="bg-muted px-2 py-0.5 rounded">public/dashboard-preview.png</code></p>
-            </div>
+          {/* Screenshot container: Carousel holding two images side-by-side */}
+          <div className="relative bg-muted/20 w-full overflow-hidden flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-border/40 min-h-[300px] md:min-h-[500px]">
+            <AnimatePresence mode="popLayout">
+              <motion.div
+                key={firstImage.src}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.5 }}
+                className="relative w-full md:w-1/2 flex items-center justify-center p-4 bg-background/20"
+              >
+                  <div className="relative w-full aspect-[16/10] rounded-xl overflow-hidden border border-border/40 shadow-sm">
+                    <Image
+                    src={firstImage.src}
+                    alt={firstImage.alt}
+                    fill
+                    className="object-cover object-top"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    priority
+                    />
+                  </div>
+              </motion.div>
+              
+              <motion.div
+                key={secondImage.src}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="relative w-full md:w-1/2 flex items-center justify-center p-4 bg-background/20"
+              >
+                  <div className="relative w-full aspect-[16/10] rounded-xl overflow-hidden border border-border/40 shadow-sm">
+                    <Image
+                    src={secondImage.src}
+                    alt={secondImage.alt}
+                    fill
+                    className="object-cover object-top"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    priority
+                    />
+                  </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
         </motion.div>
       </div>
