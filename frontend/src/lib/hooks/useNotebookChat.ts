@@ -138,7 +138,8 @@ export function useNotebookChat({ notebookId, sources, notes, contextSelections 
     }
 
     // Map source selections
-    sources.forEach(source => {
+    const sourceList = Array.isArray(sources) ? sources : []
+    sourceList.forEach(source => {
       const mode = contextSelections.sources[source.id]
       if (mode === 'insights') {
         context_config.sources[source.id] = 'insights'
@@ -150,7 +151,8 @@ export function useNotebookChat({ notebookId, sources, notes, contextSelections 
     })
 
     // Map note selections
-    notes.forEach(note => {
+    const noteList = Array.isArray(notes) ? notes : []
+    noteList.forEach(note => {
       const mode = contextSelections.notes[note.id]
       if (mode === 'full') {
         context_config.notes[note.id] = 'full content'

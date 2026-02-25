@@ -1,3 +1,6 @@
+/**
+ * Next.js 16 proxy (replaces middleware.ts). Runs Clerk auth for protected routes.
+ */
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
 const isPublicRoute = createRouteMatcher([

@@ -95,7 +95,7 @@ export function useCreateSource() {
     mutationFn: (data: CreateSourceRequest) => sourcesApi.create(data),
     onSuccess: (result: SourceResponse, variables) => {
       // Invalidate queries for all relevant notebooks with immediate refetch
-      if (variables.notebooks) {
+      if (Array.isArray(variables.notebooks) && variables.notebooks.length > 0) {
         variables.notebooks.forEach(notebookId => {
           queryClient.invalidateQueries({
             queryKey: QUERY_KEYS.sources(notebookId),
@@ -303,7 +303,8 @@ export function useAddSourcesToNotebook() {
       // Specifically invalidate the notebook's sources
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.sources(notebookId) })
       // Invalidate each affected source
-      sourceIds.forEach(sourceId => {
+      const ids = Array.isArray(sourceIds) ? sourceIds : []
+      ids.forEach(sourceId => {
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.source(sourceId) })
       })
 

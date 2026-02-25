@@ -77,7 +77,7 @@ export function convertSourceReferences(
   text: string,
   onReferenceClick: (type: ReferenceType, id: string) => void
 ): React.ReactNode {
-  const matches = parseSourceReferences(text)
+  const matches = parseSourceReferences(text) ?? []
 
   if (matches.length === 0) return text
 

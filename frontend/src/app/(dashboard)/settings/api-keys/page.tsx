@@ -489,8 +489,8 @@ function DiscoverModelsDialog({
   }
 
   const toggleAll = () => {
-    const filteredNames = filteredModels.map(m => m.name)
-    const allFilteredSelected = filteredNames.every(n => selectedModels.has(n))
+    const filteredNames = Array.isArray(filteredModels) ? filteredModels.map(m => m.name) : []
+    const allFilteredSelected = filteredNames.length > 0 && filteredNames.every(n => selectedModels.has(n))
     if (allFilteredSelected) {
       setSelectedModels(prev => {
         const next = new Set(prev)

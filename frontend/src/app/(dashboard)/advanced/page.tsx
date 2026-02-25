@@ -1,6 +1,7 @@
 'use client'
 
 import { AppShell } from '@/components/layout/AppShell'
+import { BackgroundJobsPanel } from './components/BackgroundJobsPanel'
 import { RebuildEmbeddings } from './components/RebuildEmbeddings'
 import { SystemInfo } from './components/SystemInfo'
 import { useTranslation } from '@/lib/hooks/use-translation'
@@ -19,6 +20,7 @@ export default function AdvancedPage() {
               </p>
             </div>
 
+            <BackgroundJobsPanel />
             <SystemInfo />
             <RebuildEmbeddings />
           </div>

@@ -60,10 +60,11 @@ export default function NotebookPage() {
 
   // Initialize and update selections when sources load or change
   useEffect(() => {
-    if (sources && sources.length > 0) {
+    const sourceList = Array.isArray(sources) ? sources : []
+    if (sourceList.length > 0) {
       setContextSelections(prev => {
         const newSourceSelections = { ...prev.sources }
-        sources.forEach(source => {
+        sourceList.forEach(source => {
           const currentMode = newSourceSelections[source.id]
           const hasInsights = source.insights_count > 0
 
@@ -81,10 +82,11 @@ export default function NotebookPage() {
   }, [sources])
 
   useEffect(() => {
-    if (notes && notes.length > 0) {
+    const noteList = Array.isArray(notes) ? notes : []
+    if (noteList.length > 0) {
       setContextSelections(prev => {
         const newNoteSelections = { ...prev.notes }
-        notes.forEach(note => {
+        noteList.forEach(note => {
           // Only set default if not already set
           if (!(note.id in newNoteSelections)) {
             // Notes default to 'full'

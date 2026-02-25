@@ -36,9 +36,11 @@ export function ChatColumn({ notebookId, contextSelections }: ChatColumnProps) {
     let sourcesInsights = 0
     let sourcesFull = 0
     let notesCount = 0
+    const sourceList = Array.isArray(sources) ? sources : []
+    const noteList = Array.isArray(notes) ? notes : []
 
     // Count sources by mode
-    sources.forEach(source => {
+    sourceList.forEach(source => {
       const mode = contextSelections.sources[source.id]
       if (mode === 'insights') {
         sourcesInsights++
@@ -48,7 +50,7 @@ export function ChatColumn({ notebookId, contextSelections }: ChatColumnProps) {
     })
 
     // Count notes that are included (not 'off')
-    notes.forEach(note => {
+    noteList.forEach(note => {
       const mode = contextSelections.notes[note.id]
       if (mode === 'full') {
         notesCount++

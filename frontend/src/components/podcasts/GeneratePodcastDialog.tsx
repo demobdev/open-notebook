@@ -482,10 +482,11 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
     () => notebooksQuery.data ?? [],
     [notebooksQuery.data]
   )
+  const notebookList = Array.isArray(notebooks) ? notebooks : []
 
   // Fetch sources and notes for notebooks using useQueries
   const sourcesQueries = useQueries({
-    queries: notebooks.map((notebook) => ({
+    queries: notebookList.map((notebook) => ({
       queryKey: QUERY_KEYS.sources(notebook.id),
       queryFn: () => sourcesApi.list({ notebook_id: notebook.id }),
       enabled:
@@ -495,7 +496,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
   })
 
   const notesQueries = useQueries({
-    queries: notebooks.map((notebook) => ({
+    queries: notebookList.map((notebook) => ({
       queryKey: QUERY_KEYS.notes(notebook.id),
       queryFn: () => notesApi.list({ notebook_id: notebook.id }),
       enabled:
@@ -503,22 +504,21 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
         (expandedNotebooks.includes(notebook.id) || hasSelections(selections[notebook.id])),
     })),
   })
-
   const sourcesByNotebook = useMemo<Record<string, SourceListResponse[]>>(() => {
     const map: Record<string, SourceListResponse[]> = {}
-    notebooks.forEach((notebook, index) => {
+    notebookList.forEach((notebook, index) => {
       map[notebook.id] = sourcesQueries[index]?.data ?? []
     })
     return map
-  }, [notebooks, sourcesQueries])
+  }, [notebookList, sourcesQueries])
 
   const notesByNotebook = useMemo<Record<string, NoteResponse[]>>(() => {
     const map: Record<string, NoteResponse[]> = {}
-    notebooks.forEach((notebook, index) => {
+    notebookList.forEach((notebook, index) => {
       map[notebook.id] = notesQueries[index]?.data ?? []
     })
     return map
-  }, [notebooks, notesQueries])
+  }, [notebookList, notesQueries])
 
   // Stable key for fetching state - only changes when actual fetching states change
   const fetchingKey = useMemo(
@@ -529,13 +529,13 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
   // Stable set of notebook IDs that are currently fetching sources
   const fetchingNotebookIds = useMemo(() => {
     const ids = new Set<string>()
-    notebooks.forEach((notebook, index) => {
+    notebookList.forEach((notebook, index) => {
       if (sourcesQueries[index]?.isFetching) {
         ids.add(notebook.id)
       }
     })
     return ids
-  }, [notebooks, fetchingKey])
+  }, [notebookList, fetchingKey])
 
   // Create a stable key based on actual data to prevent effect running on every render
   // Only changes when actual source/note IDs change, not on every useQueries reference change
@@ -560,7 +560,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
       let changed = false
       const next = { ...prev }
 
-      notebooks.forEach((notebook, index) => {
+      notebookList.forEach((notebook, index) => {
         const sources = sourcesQueries[index]?.data
         const notes = notesQueries[index]?.data
 
@@ -597,7 +597,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
       return changed ? next : prev
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, notebooks, dataKey])
+  }, [open, notebookList, dataKey])
 
   const resetState = useCallback(() => {
     setExpandedNotebooks([])
@@ -625,10 +625,16 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
     }
 
     const updateContextCounts = async () => {
+      if (!selections || typeof selections !== 'object') {
+        setTokenCount(0)
+        setCharCount(0)
+        return
+      }
       // Check if there are any selections
       const hasAnySelections = Object.values(selections).some((selection) =>
-        Object.values(selection.sources).some((mode) => mode !== 'off') ||
-        Object.values(selection.notes).some((mode) => mode !== 'off')
+        selection && typeof selection === 'object' &&
+        (Object.values(selection.sources ?? {}).some((mode) => mode !== 'off') ||
+        Object.values(selection.notes ?? {}).some((mode) => mode !== 'off'))
       )
 
       if (!hasAnySelections) {
@@ -642,8 +648,10 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
         let totalChars = 0
 
         // Build context for each notebook and sum up counts
-        for (const [notebookId, selection] of Object.entries(selections)) {
-          const sourcesConfig = Object.entries(selection.sources)
+        const entries = Object.entries(selections)
+        for (const [notebookId, selection] of entries) {
+          if (!selection || typeof selection !== 'object') continue
+          const sourcesConfig = Object.entries(selection.sources ?? {})
             .filter(([, mode]) => mode !== 'off')
             .reduce<Record<string, string>>((acc, [sourceId, mode]) => {
               const normalizedId = sourceId.replace(/^source:/, '')
@@ -651,7 +659,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
               return acc
             }, {})
 
-          const notesConfig = Object.entries(selection.notes)
+          const notesConfig = Object.entries(selection.notes ?? {})
             .filter(([, mode]) => mode !== 'off')
             .reduce<Record<string, string>>((acc, [noteId]) => {
               const normalizedId = noteId.replace(/^note:/, '')
@@ -757,7 +765,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
   }, [selectedEpisodeProfile, effectiveSpeakerProfile])
 
   const selectedNotebookSummaries = useMemo(() => {
-    return notebooks.map((notebook) => {
+    return notebookList.map((notebook) => {
       const selection = selections[notebook.id]
       if (!selection) {
         return { notebookId: notebook.id, sources: 0, notes: 0 }
@@ -770,13 +778,13 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
       ).length
       return { notebookId: notebook.id, sources: sourcesCount, notes: notesCount }
     })
-  }, [notebooks, selections])
+  }, [notebookList, selections])
 
   const handleNotebookToggle = useCallback(
     (notebookId: string, checked: boolean | 'indeterminate') => {
       const shouldCheck = checked === 'indeterminate' ? true : checked
-      const sources = sourcesByNotebook[notebookId] ?? []
-      const notes = notesByNotebook[notebookId] ?? []
+      const sources = Array.isArray(sourcesByNotebook[notebookId]) ? sourcesByNotebook[notebookId] : []
+      const notes = Array.isArray(notesByNotebook[notebookId]) ? notesByNotebook[notebookId] : []
       setSelections((prev) => {
         if (shouldCheck) {
           const nextSources: Record<string, SourceMode> = {}
@@ -854,8 +862,10 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
 
     const tasks: Array<{ notebookId: string; payload: BuildContextRequest }> = []
 
-    Object.entries(selections).forEach(([notebookId, selection]) => {
-      const sourcesConfig = Object.entries(selection.sources)
+    const selectionEntries = selections && typeof selections === 'object' ? Object.entries(selections) : []
+    selectionEntries.forEach(([notebookId, selection]) => {
+      if (!selection || typeof selection !== 'object') return
+      const sourcesConfig = Object.entries(selection.sources ?? {})
         .filter(([, mode]) => mode !== 'off')
         .reduce<Record<string, string>>((acc, [sourceId, mode]) => {
           const normalizedId = sourceId.replace(/^source:/, '')
@@ -863,7 +873,7 @@ export function GeneratePodcastDialog({ open, onOpenChange }: GeneratePodcastDia
           return acc
         }, {})
 
-      const notesConfig = Object.entries(selection.notes)
+      const notesConfig = Object.entries(selection.notes ?? {})
         .filter(([, mode]) => mode !== 'off')
         .reduce<Record<string, string>>((acc, [noteId]) => {
           const normalizedId = noteId.replace(/^note:/, '')
