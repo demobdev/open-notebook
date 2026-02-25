@@ -2,8 +2,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { SignInButton, SignUpButton } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/ThemeToggle'
-
 export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-border transition-colors">
@@ -20,16 +18,15 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <ThemeToggle />
           <SignInButton mode="modal">
-            <button className="hidden text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground sm:block">
+            <span className="hidden cursor-pointer text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground sm:inline-block">
               Sign In
-            </button>
+            </span>
           </SignInButton>
           <SignUpButton mode="modal">
-            <Button size="sm" className="h-[28px] rounded-full bg-[#3b82f6]/10 text-[#3b82f6] hover:bg-[#3b82f6]/20 px-4 text-[13px] font-medium border border-[#3b82f6]/20">
+            <div className="inline-flex h-[28px] items-center justify-center whitespace-nowrap rounded-full bg-[#3b82f6]/10 px-4 text-[13px] font-medium text-[#3b82f6] transition-colors hover:bg-[#3b82f6]/20 border border-[#3b82f6]/20 cursor-pointer">
               Get Started
-            </Button>
+            </div>
           </SignUpButton>
         </div>
       </div>
