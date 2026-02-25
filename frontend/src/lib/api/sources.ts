@@ -27,7 +27,10 @@ export const sourcesApi = {
     return response.data
   },
 
-  create: async (data: CreateSourceRequest & { file?: File }) => {
+  create: async (
+    data: CreateSourceRequest & { file?: File },
+    onUploadProgress?: (progressEvent: any) => void
+  ) => {
     // Always use FormData to match backend expectations
     const formData = new FormData()
     
@@ -62,7 +65,9 @@ export const sourcesApi = {
     formData.append('delete_source', String(data.delete_source ?? false))
     formData.append('async_processing', String(data.async_processing ?? false))
     
-    const response = await apiClient.post<SourceResponse>('/sources', formData)
+    const response = await apiClient.post<SourceResponse>('/sources', formData, {
+      onUploadProgress,
+    })
     return response.data
   },
 

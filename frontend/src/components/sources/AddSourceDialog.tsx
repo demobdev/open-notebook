@@ -120,14 +120,13 @@ export function AddSourceDialog({
   const { data: transformations = [], isLoading: transformationsLoading } = useTransformations()
   const { data: settings } = useSettings()
 
-  // Form setup
   const {
     register,
     handleSubmit,
     control,
     watch,
     setValue,
-    formState: { errors },
+    formState: { errors, isSubmitting },
     reset,
   } = useForm<CreateSourceFormData>({
     resolver: zodResolver(createSourceSchema),
@@ -316,7 +315,15 @@ export function AddSourceDialog({
       requestWithFile.file = file
     }
 
-    await createSource.mutateAsync(createRequest)
+    await createSource.mutateAsync({
+      data: createRequest,
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          setProcessingStatus((prev) => prev ? { ...prev, progress } : { message: t.sources.submittingSource, progress })
+        }
+      }
+    })
   }
 
   // Batch submission
@@ -365,7 +372,11 @@ export function AddSourceDialog({
           requestWithFile.file = item.value as File
         }
 
-        await createSource.mutateAsync(createRequest)
+        await createSource.mutateAsync({
+          data: createRequest,
+          // We don't track granular per-file progress in batch mode currently
+          // to avoid complex UI updates, just the overall file count progress
+        })
         results.success++
       } catch (error) {
         console.error(`Error creating source for ${itemLabel}:`, error)
@@ -620,10 +631,10 @@ export function AddSourceDialog({
               {/* Show Done button on all steps, styled as primary */}
               <Button
                 type="submit"
-                disabled={!currentStepValid || createSource.isPending}
+                disabled={!currentStepValid || processing || isSubmitting || createSource.isPending}
                 className="min-w-[120px]"
               >
-                {createSource.isPending ? t.common.adding : t.common.done}
+                {processing || isSubmitting || createSource.isPending ? t.common.adding : t.common.done}
               </Button>
             </div>
           </div>

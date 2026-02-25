@@ -92,19 +92,25 @@ export function useCreateSource() {
   const { t } = useTranslation()
 
   return useMutation({
-    mutationFn: (data: CreateSourceRequest) => sourcesApi.create(data),
+    mutationFn: ({
+      data,
+      onUploadProgress,
+    }: {
+      data: CreateSourceRequest & { file?: File }
+      onUploadProgress?: (progressEvent: any) => void
+    }) => sourcesApi.create(data, onUploadProgress),
     onSuccess: (result: SourceResponse, variables) => {
       // Invalidate queries for all relevant notebooks with immediate refetch
-      if (Array.isArray(variables.notebooks) && variables.notebooks.length > 0) {
-        variables.notebooks.forEach(notebookId => {
+      if (Array.isArray(variables.data.notebooks) && variables.data.notebooks.length > 0) {
+        variables.data.notebooks.forEach(notebookId => {
           queryClient.invalidateQueries({
             queryKey: QUERY_KEYS.sources(notebookId),
             refetchType: 'active' // Refetch active queries immediately
           })
         })
-      } else if (variables.notebook_id) {
+      } else if (variables.data.notebook_id) {
         queryClient.invalidateQueries({
-          queryKey: QUERY_KEYS.sources(variables.notebook_id),
+          queryKey: QUERY_KEYS.sources(variables.data.notebook_id),
           refetchType: 'active'
         })
       }
@@ -116,7 +122,7 @@ export function useCreateSource() {
       })
 
       // Show different messages based on processing mode
-      if (variables.async_processing) {
+      if (variables.data.async_processing) {
         toast({
           title: t.sources.sourceQueued,
           description: t.sources.sourceQueuedDesc,
