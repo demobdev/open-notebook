@@ -4,9 +4,9 @@ import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
-import Threads from '@/components/Threads'
 
 import { Button } from '@/components/ui/button'
+import { WarpBackground } from '@/components/ui/warp-background'
 
 export function Hero() {
   const { resolvedTheme } = useTheme()
@@ -16,15 +16,8 @@ export function Hero() {
     setMounted(true)
   }, [])
 
-  // Avoid hydration mismatch by rendering default dark or null first, but to prevent layout shift we can just assume dark first
-  const waveColor: [number, number, number] = mounted && resolvedTheme === 'light' ? [0, 0, 0] : [1, 1, 1]
-
   return (
-    <section className="relative overflow-hidden pt-20 pb-16 lg:pt-24 bg-background transition-colors">
-       {/* Dot Background Pattern */}
-       <div className="absolute inset-0 bg-background mix-blend-normal z-[-1]" />
-       <div className="absolute inset-0 bg-[radial-gradient(#ffffff1a_1px,transparent_1px)] dark:bg-[radial-gradient(#ffffff1a_1px,transparent_1px)] bg-[radial-gradient(#0000001a_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-50" />
-
+    <WarpBackground className="relative overflow-hidden pt-20 pb-16 lg:pt-24 bg-background transition-colors min-h-[90vh] flex flex-col justify-center">
       <div className="container relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         
         <div className="flex flex-col items-center text-center">
@@ -43,7 +36,7 @@ export function Hero() {
           </div>
 
           <h1 className="text-[52px] font-bold tracking-tight text-foreground leading-tight sm:text-6xl md:text-[80px] md:leading-[1.1]">
-            <span className="bg-gradient-to-r from-[#41d1ff] to-[#bd34fe] bg-clip-text text-transparent">Audioprism</span> Studio
+            Build Powerful Audio Workflows
           </h1>
           
           <p className="mt-6 max-w-[600px] text-[17px] leading-relaxed text-foreground/50">
@@ -64,19 +57,8 @@ export function Hero() {
           </p>
         </div>
 
-        {/* Visual Placeholder (The Audio Wave) */}
-        <div className="mt-16 mb-24 relative w-[130%] -left-[15%] md:w-[150%] md:-left-[25%] h-[300px] sm:h-[400px] flex items-center justify-center">
-             <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-auto">
-               <div className="w-full h-full relative" style={{ mixBlendMode: mounted && resolvedTheme === 'light' ? 'multiply' : 'screen' }}>
-                 <Threads
-                    amplitude={3.5}
-                    distance={0.0}
-                    color={waveColor}
-                    enableMouseInteraction={true}
-                  />
-               </div>
-             </div>
-        </div>
+        {/* Spacer before Trust Bar */}
+        <div className="mt-16 sm:mt-24"></div>
 
         {/* Trust Bar */}
         <div className="mt-20 pt-10 border-t border-border/50 relative w-full overflow-hidden">
@@ -122,6 +104,6 @@ export function Hero() {
              </div>
         </div>
       </div>
-    </section>
+    </WarpBackground>
   )
 }
