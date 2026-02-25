@@ -210,7 +210,10 @@ async def get_sources(
             # Query all sources - include command field with FETCH
             # Auto-claim any orphaned sources for the current user to fix previous missing user_id bugs
             if not is_admin(user_id):
-                await repo_query("UPDATE source SET user_id = $user_id WHERE user_id IS NONE OR type(user_id) = 'null'", {"user_id": user_id})
+                try:
+                    await repo_query("UPDATE source SET user_id = $user_id WHERE user_id = NONE", {"user_id": user_id})
+                except Exception as e:
+                    logger.warning(f"Failed to auto-claim orphaned sources: {e}")
 
             user_filter = "" if is_admin(user_id) else " WHERE user_id = $user_id"
             query = f"""
