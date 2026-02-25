@@ -23,14 +23,6 @@ export function ActivityLog() {
   useEffect(() => {
     setMounted(true)
 
-    // Preload audio instantly to bypass iOS restrictions later
-    audioRef.current = new Audio('/the-energy-code-photobiomodulation.mp3')
-    audioRef.current.load()
-
-    audioRef.current.onended = () => {
-      setIsPlaying(false)
-    }
-
     let currentLogIndex = 0
     const interval = setInterval(() => {
       if (currentLogIndex < LOG_LINES.length) {
@@ -46,7 +38,6 @@ export function ActivityLog() {
       clearInterval(interval)
       if (audioRef.current) {
         audioRef.current.pause()
-        audioRef.current.src = ""
       }
     }
   }, [])
@@ -68,10 +59,6 @@ export function ActivityLog() {
         }).catch(error => {
           console.error("Audio playback failed:", error)
           setIsLoading(false)
-          // Attempt to reload if Safari blocked it
-          if (audioRef.current) {
-            audioRef.current.load()
-          }
         })
       }
     }
@@ -81,6 +68,13 @@ export function ActivityLog() {
 
   return (
     <section id="activity-log" className="py-24 bg-background border-y border-border overflow-hidden transition-colors">
+      <audio 
+        ref={audioRef} 
+        src="/the-energy-code-photobiomodulation.mp3" 
+        preload="auto" 
+        onEnded={() => setIsPlaying(false)} 
+        className="hidden" 
+      />
       <div className="container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         
         <div className="flex justify-center mb-16">
