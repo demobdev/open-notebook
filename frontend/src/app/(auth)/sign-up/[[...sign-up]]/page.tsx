@@ -69,14 +69,14 @@ export default function SignUpPage() {
             hoverStrength={2}
             inertia={0.05}
             bloom={1}
-            timeScale={0.5}
+            timeScale={0.1}
           />
         </div>
       </div>
 
       {/* Auth Modal */}
       <div className="z-10 relative w-full max-w-[420px] pointer-events-auto flex flex-col items-center">
-        <SignUp afterSignUpUrl="/notebooks" appearance={clerkAppearance} />
+        <SignUp fallbackRedirectUrl="/notebooks" forceRedirectUrl="/notebooks" appearance={clerkAppearance} />
         
         {/* Legal Links */}
         <div className="mt-8 flex items-center gap-6 text-xs text-white/60">

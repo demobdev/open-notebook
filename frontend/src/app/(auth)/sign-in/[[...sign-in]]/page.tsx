@@ -35,7 +35,7 @@ export default function SignInPage() {
             hoverStrength={2}
             inertia={0.05}
             bloom={1}
-            timeScale={0.5}
+            timeScale={0.1}
           />
         </div>
       </div>

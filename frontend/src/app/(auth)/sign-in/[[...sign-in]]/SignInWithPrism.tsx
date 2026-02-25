@@ -42,7 +42,8 @@ export function SignInWithPrism() {
   return (
     <div className="w-full max-w-[420px] p-4">
       <SignIn
-        afterSignInUrl="/notebooks"
+        fallbackRedirectUrl="/notebooks"
+        forceRedirectUrl="/notebooks"
         appearance={clerkAppearance}
       />
     </div>
