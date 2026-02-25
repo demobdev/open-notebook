@@ -1,6 +1,6 @@
 "use client"
 
-import { Play } from 'lucide-react'
+import { Play, Pause, Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 
@@ -16,6 +16,9 @@ export function ActivityLog() {
   const [mounted, setMounted] = useState(false)
   const [logs, setLogs] = useState(LOG_LINES)
   const [showPlayer, setShowPlayer] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -35,8 +38,46 @@ export function ActivityLog() {
       }
     }, 700)
 
-    return () => clearInterval(interval)
-  }, [])
+    return () => {
+      clearInterval(interval)
+      if (audio) {
+        audio.pause()
+        audio.src = ""
+      }
+    }
+  }, [audio])
+
+  const handleTogglePlay = () => {
+    if (!audio) {
+      setIsLoading(true)
+      const newAudio = new Audio('/the-energy-code-photobiomodulation.mp3')
+      
+      newAudio.oncanplaythrough = () => {
+        setIsLoading(false)
+        newAudio.play()
+        setIsPlaying(true)
+      }
+
+      newAudio.onended = () => {
+        setIsPlaying(false)
+      }
+
+      newAudio.onerror = () => {
+        setIsLoading(false)
+        alert('Demo audio file not found. Please ensure it is uploaded to the public directory.')
+      }
+
+      setAudio(newAudio)
+    } else {
+      if (isPlaying) {
+        audio.pause()
+        setIsPlaying(false)
+      } else {
+        audio.play()
+        setIsPlaying(true)
+      }
+    }
+  }
 
   if (!mounted) return null
 
@@ -109,18 +150,18 @@ export function ActivityLog() {
                   className="flex items-center gap-4 mt-6 p-4 rounded-xl bg-card border border-border shadow-sm max-w-sm"
                 >
                   <button 
-                    className="h-10 w-10 shrink-0 rounded-full bg-foreground text-background flex items-center justify-center hover:bg-foreground/90 transition-transform hover:scale-105 active:scale-95 cursor-pointer"
-                    aria-label="Play sample audio"
-                    onClick={() => {
-                      try {
-                        const audio = new Audio('/the-energy-code-photobiomodulation.mp3');
-                        audio.play().catch(() => alert('Demo audio file not found. Please upload a file to test.'));
-                      } catch(e) {
-                         console.error(e)
-                      }
-                    }}
+                    className="h-10 w-10 shrink-0 rounded-full bg-foreground text-background flex items-center justify-center hover:bg-foreground/90 transition-transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
+                    aria-label={isPlaying ? "Pause sample audio" : "Play sample audio"}
+                    disabled={isLoading}
+                    onClick={handleTogglePlay}
                   >
-                    <Play className="h-4 w-4 fill-current ml-1" />
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : isPlaying ? (
+                      <Pause className="h-4 w-4 fill-current" />
+                    ) : (
+                      <Play className="h-4 w-4 fill-current ml-1" />
+                    )}
                   </button>
                   <div className="flex flex-col flex-1 truncate">
                     <span className="text-[14px] font-medium text-foreground truncate">Play Generated Episode</span>
