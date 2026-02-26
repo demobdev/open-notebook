@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { SignInButton, SignUpButton } from '@clerk/nextjs'
+import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
 export function Header() {
   return (
@@ -18,16 +18,24 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <SignInButton forceRedirectUrl="/dashboard">
-            <button className="hidden cursor-pointer text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground sm:inline-block bg-transparent border-none">
-              Sign In
-            </button>
-          </SignInButton>
-          <SignUpButton forceRedirectUrl="/dashboard">
-            <button className="inline-flex h-[28px] items-center justify-center whitespace-nowrap rounded-full bg-[#3b82f6]/10 px-4 text-[13px] font-medium text-[#3b82f6] transition-colors hover:bg-[#3b82f6]/20 border border-[#3b82f6]/20 cursor-pointer">
-              Get Started
-            </button>
-          </SignUpButton>
+          <SignedOut>
+            <SignInButton forceRedirectUrl="/dashboard">
+              <button className="cursor-pointer text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground bg-transparent border-none">
+                Sign In
+              </button>
+            </SignInButton>
+            <SignUpButton forceRedirectUrl="/dashboard">
+              <button className="inline-flex h-[28px] items-center justify-center whitespace-nowrap rounded-full bg-[#3b82f6]/10 px-4 text-[13px] font-medium text-[#3b82f6] transition-colors hover:bg-[#3b82f6]/20 border border-[#3b82f6]/20 cursor-pointer">
+                Get Started
+              </button>
+            </SignUpButton>
+          </SignedOut>
+          <SignedIn>
+            <Link href="/dashboard" className="cursor-pointer text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground bg-transparent border-none mr-2">
+              Dashboard
+            </Link>
+            <UserButton afterSignOutUrl="/" />
+          </SignedIn>
         </div>
       </div>
     </header>
