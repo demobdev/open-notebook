@@ -49,13 +49,12 @@ export function Hero() {
           </p>
           
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center items-center w-full">
-            <SignUpButton mode="modal">
-              <Button 
-                size="lg" 
-                className="h-11 rounded-full bg-foreground text-background hover:bg-foreground/90 px-8 text-[15px] font-medium cursor-pointer"
+            <SignUpButton forceRedirectUrl="/dashboard">
+              <span 
+                className="inline-flex items-center justify-center whitespace-nowrap h-11 rounded-full bg-foreground text-background hover:bg-foreground/90 px-8 text-[15px] font-medium cursor-pointer"
               >
                 Get Started
-              </Button>
+              </span>
             </SignUpButton>
           </div>
           <p className="mt-4 text-[13px] text-foreground/40">
