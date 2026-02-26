@@ -19,15 +19,15 @@ export function Header() {
 
         <div className="flex items-center gap-4">
           <SignedOut>
-            <SignInButton forceRedirectUrl="/dashboard">
-              <button className="cursor-pointer text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground bg-transparent border-none">
+            <SignInButton mode="modal">
+              <span className="cursor-pointer flex items-center h-full text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground">
                 Sign In
-              </button>
+              </span>
             </SignInButton>
-            <SignUpButton forceRedirectUrl="/dashboard">
-              <button className="inline-flex h-[28px] items-center justify-center whitespace-nowrap rounded-full bg-[#3b82f6]/10 px-4 text-[13px] font-medium text-[#3b82f6] transition-colors hover:bg-[#3b82f6]/20 border border-[#3b82f6]/20 cursor-pointer">
+            <SignUpButton mode="modal">
+              <span className="inline-flex h-[28px] items-center justify-center whitespace-nowrap rounded-full bg-[#3b82f6]/10 px-4 text-[13px] font-medium text-[#3b82f6] transition-colors hover:bg-[#3b82f6]/20 border border-[#3b82f6]/20 cursor-pointer">
                 Get Started
-              </button>
+              </span>
             </SignUpButton>
           </SignedOut>
           <SignedIn>
