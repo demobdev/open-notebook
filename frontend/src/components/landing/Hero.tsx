@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react'
 import Threads from '@/components/Threads'
 
 import { Button } from '@/components/ui/button'
-import { SignUpButton } from '@clerk/nextjs'
+
 import { TextWarp } from '@/components/ui/text-warp'
 
 export function Hero() {
@@ -49,13 +49,13 @@ export function Hero() {
           </p>
           
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center items-center w-full">
-            <SignUpButton forceRedirectUrl="/dashboard">
+            <Link href="/sign-up">
               <span 
                 className="inline-flex items-center justify-center whitespace-nowrap h-11 rounded-full bg-foreground text-background hover:bg-foreground/90 px-8 text-[15px] font-medium cursor-pointer"
               >
                 Get Started
               </span>
-            </SignUpButton>
+            </Link>
           </div>
           <p className="mt-4 text-[13px] text-foreground/40">
              Free to try • No credit card required.

@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
+import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
 export function Header() {
   return (
@@ -19,16 +19,12 @@ export function Header() {
 
         <div className="flex items-center gap-4">
           <SignedOut>
-            <SignInButton mode="modal">
-              <span className="cursor-pointer flex items-center h-full text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground">
-                Sign In
-              </span>
-            </SignInButton>
-            <SignUpButton mode="modal">
-              <span className="inline-flex h-[28px] items-center justify-center whitespace-nowrap rounded-full bg-[#3b82f6]/10 px-4 text-[13px] font-medium text-[#3b82f6] transition-colors hover:bg-[#3b82f6]/20 border border-[#3b82f6]/20 cursor-pointer">
-                Get Started
-              </span>
-            </SignUpButton>
+            <Link href="/sign-in" className="cursor-pointer flex items-center h-full text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground">
+              Sign In
+            </Link>
+            <Link href="/sign-up" className="inline-flex h-[28px] items-center justify-center whitespace-nowrap rounded-full bg-[#3b82f6]/10 px-4 text-[13px] font-medium text-[#3b82f6] transition-colors hover:bg-[#3b82f6]/20 border border-[#3b82f6]/20 cursor-pointer">
+              Get Started
+            </Link>
           </SignedOut>
           <SignedIn>
             <Link href="/dashboard" className="cursor-pointer text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground bg-transparent border-none mr-2">
