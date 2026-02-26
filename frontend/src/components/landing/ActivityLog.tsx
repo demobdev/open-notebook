@@ -42,7 +42,7 @@ export function ActivityLog() {
     }
   }, [])
 
-  const handleTogglePlay = () => {
+  const handleTogglePlay = async () => {
     if (!audioRef.current) return
 
     if (isPlaying) {
@@ -50,16 +50,18 @@ export function ActivityLog() {
       setIsPlaying(false)
     } else {
       setIsLoading(true)
-      const playPromise = audioRef.current.play()
-      
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
-          setIsLoading(false)
-          setIsPlaying(true)
-        }).catch(error => {
-          console.error("Audio playback failed:", error)
-          setIsLoading(false)
-        })
+      try {
+        // iOS requires plays to be immediately synchronous to the click event
+        if (audioRef.current.currentTime === audioRef.current.duration) {
+           audioRef.current.currentTime = 0;
+        }
+        await audioRef.current.play()
+        setIsPlaying(true)
+      } catch (error) {
+        console.error("Audio playback failed:", error)
+        // If Safari totally blocks it, reset state
+      } finally {
+        setIsLoading(false)
       }
     }
   }
@@ -71,7 +73,9 @@ export function ActivityLog() {
       <audio 
         ref={audioRef} 
         src="/the-energy-code-photobiomodulation.mp3" 
-        preload="auto" 
+        preload="auto"
+        controls={false}
+        playsInline={true}
         onEnded={() => setIsPlaying(false)} 
         className="hidden" 
       />

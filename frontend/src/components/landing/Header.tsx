@@ -18,15 +18,15 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <SignInButton mode="modal">
-            <span className="hidden cursor-pointer text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground sm:inline-block">
+          <SignInButton forceRedirectUrl="/dashboard">
+            <button className="hidden cursor-pointer text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground sm:inline-block bg-transparent border-none">
               Sign In
-            </span>
+            </button>
           </SignInButton>
-          <SignUpButton mode="modal">
-            <div className="inline-flex h-[28px] items-center justify-center whitespace-nowrap rounded-full bg-[#3b82f6]/10 px-4 text-[13px] font-medium text-[#3b82f6] transition-colors hover:bg-[#3b82f6]/20 border border-[#3b82f6]/20 cursor-pointer">
+          <SignUpButton forceRedirectUrl="/dashboard">
+            <button className="inline-flex h-[28px] items-center justify-center whitespace-nowrap rounded-full bg-[#3b82f6]/10 px-4 text-[13px] font-medium text-[#3b82f6] transition-colors hover:bg-[#3b82f6]/20 border border-[#3b82f6]/20 cursor-pointer">
               Get Started
-            </div>
+            </button>
           </SignUpButton>
         </div>
       </div>
