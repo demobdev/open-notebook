@@ -8,7 +8,7 @@ export function Header() {
       <div className="container mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2">
           <Image src="/logo.svg" alt="Audioprism Logo" width={24} height={24} className="h-6 w-auto" />
-          <span className="text-[15px] font-semibold tracking-tight text-white">Audioprism</span>
+          <span className="text-[15px] font-semibold tracking-tight text-foreground">Audioprism</span>
         </div>
 
         <nav className="hidden items-center gap-8 text-[13px] font-medium text-foreground/60 md:flex">
