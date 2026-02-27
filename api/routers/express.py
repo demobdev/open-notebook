@@ -10,7 +10,7 @@ from loguru import logger
 
 from api.auth import get_current_user_id
 from content_core.common import ProcessSourceState
-from content_core.extractor import extract_content
+from content_core import extract_content
 from open_notebook.ai.key_provider import get_api_key
 from open_notebook.config import DATA_FOLDER, UPLOADS_FOLDER
 
