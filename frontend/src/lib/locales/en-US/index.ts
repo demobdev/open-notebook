@@ -214,6 +214,7 @@ export const enUS = {
     language: "Toggle language",
     theme: "Theme",
     ask: "Ask",
+    express: "Express",
   },
   notebooks: {
     title: "Notebooks",

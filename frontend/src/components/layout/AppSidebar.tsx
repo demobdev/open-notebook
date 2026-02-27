@@ -43,6 +43,7 @@ import {
   Wrench,
   Command,
   Shield,
+  Zap,
 } from 'lucide-react'
 
 const getNavigation = (t: TranslationKeys) => [
@@ -63,6 +64,7 @@ const getNavigation = (t: TranslationKeys) => [
     title: t.navigation.create,
     items: [
       { name: t.navigation.podcasts, href: '/podcasts', icon: Mic },
+      { name: t.navigation.express, href: '/express', icon: Zap },
     ],
   },
   {

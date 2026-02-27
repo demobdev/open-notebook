@@ -96,6 +96,14 @@ async def list_podcast_episodes(request: Request):
     """List all podcast episodes"""
     user_id = get_current_user_id(request)
     try:
+        # Auto-claim any orphaned episodes for the current user
+        if not is_admin(user_id):
+            try:
+                from open_notebook.database.repository import repo_query
+                await repo_query("UPDATE episode SET user_id = $user_id WHERE user_id IS NONE OR type::is::null(user_id)", {"user_id": user_id})
+            except Exception as e:
+                logger.warning(f"Failed to auto-claim orphaned episodes: {e}")
+
         episodes = await PodcastService.list_episodes(user_id=user_id)
 
         response_episodes = []
