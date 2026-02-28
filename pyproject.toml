@@ -42,7 +42,7 @@ dependencies = [
     "PyJWT[crypto]>=2.8.0",
     "pycountry>=24.6.1",
     "babel>=2.14.0",
-]
+] # Force rebuild for pycountry/babel
 
 [tool.setuptools]
 package-dir = {"open_notebook" = "open_notebook"}
