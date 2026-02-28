@@ -13,12 +13,16 @@ export interface EpisodeProfile {
   name: string
   description: string
   speaker_config: string
-  outline_provider: string
-  outline_model: string
-  transcript_provider: string
-  transcript_model: string
+  outline_llm?: string | null
+  transcript_llm?: string | null
+  language?: string | null
   default_briefing: string
   num_segments: number
+  // Legacy fields
+  outline_provider?: string
+  outline_model?: string
+  transcript_provider?: string
+  transcript_model?: string
 }
 
 export interface SpeakerVoiceConfig {
@@ -26,15 +30,23 @@ export interface SpeakerVoiceConfig {
   voice_id: string
   backstory: string
   personality: string
+  voice_model?: string | null // Per-speaker override
 }
 
 export interface SpeakerProfile {
   id: string
   name: string
   description: string
-  tts_provider: string
-  tts_model: string
+  voice_model?: string | null
   speakers: SpeakerVoiceConfig[]
+  // Legacy fields
+  tts_provider?: string
+  tts_model?: string
+}
+
+export interface Language {
+  code: string
+  name: string
 }
 
 export interface PodcastEpisode {

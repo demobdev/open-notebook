@@ -23,22 +23,17 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 
 import { TranslationKeys } from '@/lib/locales'
 import { useTranslation } from '@/lib/hooks/use-translation'
+import { ModelSelector } from '@/components/common/ModelSelector'
 
 const speakerConfigSchema = (t: TranslationKeys) => z.object({
   name: z.string().min(1, t.common.nameRequired || 'Name is required'),
   voice_id: z.string().min(1, t.podcasts.voiceIdRequired || 'Voice ID is required'),
+  voice_model: z.string().optional().nullable(),
   backstory: z.string().min(1, t.podcasts.backstoryRequired || 'Backstory is required'),
   personality: z.string().min(1, t.podcasts.personalityRequired || 'Personality is required'),
 })
@@ -46,8 +41,9 @@ const speakerConfigSchema = (t: TranslationKeys) => z.object({
 const speakerProfileSchema = (t: TranslationKeys) => z.object({
   name: z.string().min(1, t.common.nameRequired || 'Name is required'),
   description: z.string().optional(),
-  tts_provider: z.string().min(1, t.models.providerRequired || 'Provider is required'),
-  tts_model: z.string().min(1, t.models.modelRequired || 'Model is required'),
+  voice_model: z.string().optional().nullable(),
+  tts_provider: z.string().optional(),
+  tts_model: z.string().optional(),
   speakers: z
     .array(speakerConfigSchema(t))
     .min(1, t.podcasts.speakerCountMin || 'At least one speaker is required')
@@ -67,6 +63,7 @@ interface SpeakerProfileFormDialogProps {
 const EMPTY_SPEAKER = {
   name: '',
   voice_id: '',
+  voice_model: null,
   backstory: '',
   personality: '',
 }
@@ -92,15 +89,23 @@ export function SpeakerProfileFormDialog({
       return {
         name: initialData.name,
         description: initialData.description ?? '',
+        voice_model: initialData.voice_model,
         tts_provider: initialData.tts_provider,
         tts_model: initialData.tts_model,
-        speakers: initialData.speakers?.map((speaker) => ({ ...speaker })) ?? [{ ...EMPTY_SPEAKER }],
+        speakers: initialData.speakers?.map((speaker) => ({ 
+          name: speaker.name,
+          voice_id: speaker.voice_id,
+          voice_model: speaker.voice_model,
+          backstory: speaker.backstory,
+          personality: speaker.personality,
+        })) ?? [{ ...EMPTY_SPEAKER }],
       }
     }
 
     return {
       name: '',
       description: '',
+      voice_model: null,
       tts_provider: firstProvider,
       tts_model: firstModel,
       speakers: [{ ...EMPTY_SPEAKER }],
@@ -112,8 +117,6 @@ export function SpeakerProfileFormDialog({
     register,
     handleSubmit,
     reset,
-    setValue,
-    watch,
     formState: { errors },
   } = useForm<SpeakerProfileFormValues>({
     resolver: zodResolver(speakerProfileSchema(t)),
@@ -129,13 +132,6 @@ export function SpeakerProfileFormDialog({
     name: 'speakers',
   })
 
-  const provider = watch('tts_provider')
-  const currentModel = watch('tts_model')
-  const availableModels = useMemo(
-    () => modelOptions[provider] ?? [],
-    [modelOptions, provider]
-  )
-
   const speakersArrayError = (
     errors.speakers as FieldErrorsImpl<{ root?: { message?: string } }> | undefined
   )?.root?.message
@@ -146,20 +142,6 @@ export function SpeakerProfileFormDialog({
     }
     reset(getDefaults())
   }, [open, reset, getDefaults])
-
-  useEffect(() => {
-    if (!provider) {
-      return
-    }
-    const models = modelOptions[provider] ?? []
-    if (models.length === 0) {
-      setValue('tts_model', '')
-      return
-    }
-    if (!models.includes(currentModel)) {
-      setValue('tts_model', models[0])
-    }
-  }, [provider, currentModel, modelOptions, setValue])
 
   const onSubmit = async (values: SpeakerProfileFormValues) => {
     const payload = {
@@ -180,7 +162,7 @@ export function SpeakerProfileFormDialog({
   }
 
   const isSubmitting = createProfile.isPending || updateProfile.isPending
-  const disableSubmit = isSubmitting || providers.length === 0
+  const disableSubmit = isSubmitting
   const isEdit = mode === 'edit'
 
   return (
@@ -195,15 +177,6 @@ export function SpeakerProfileFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {providers.length === 0 ? (
-          <Alert className="bg-amber-50 text-amber-900 border-amber-200">
-            <AlertTitle>{t.podcasts.noTtsModelsAvailable}</AlertTitle>
-            <AlertDescription>
-              {t.podcasts.noTtsModelsDesc}
-            </AlertDescription>
-          </Alert>
-        ) : null}
-
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pt-2">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
@@ -214,57 +187,23 @@ export function SpeakerProfileFormDialog({
               ) : null}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="tts_provider">{t.models.provider} *</Label>
+            <div className="md:col-span-2 space-y-2">
               <Controller
                 control={control}
-                name="tts_provider"
+                name="voice_model"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="tts_provider">
-                      <SelectValue placeholder={t.models.selectProviderPlaceholder} />
-                    </SelectTrigger>
-                    <SelectContent title={t.models.provider}>
-                      {providers.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          <span className="capitalize">{option}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ModelSelector
+                    label="Default TTS Model"
+                    modelType="text_to_speech"
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    placeholder="Select TTS Model"
+                  />
                 )}
               />
-              {errors.tts_provider ? (
-                <p className="text-xs text-red-600">{errors.tts_provider.message}</p>
-              ) : null}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="tts_model">{t.common.model} *</Label>
-              <Controller
-                control={control}
-                name="tts_model"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="tts_model">
-                      <SelectValue placeholder={t.models.selectModelPlaceholder} />
-                    </SelectTrigger>
-                    <SelectContent title={t.common.model}>
-                      {availableModels.map((model) => (
-                        <SelectItem key={model} value={model}>
-                          {model}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.tts_model ? (
-                <p className="text-xs text-red-600">{errors.tts_model.message}</p>
-              ) : null}
-            </div>
-
-            <div className="space-y-2">
+            <div className="md:col-span-2 space-y-2">
               <Label htmlFor="description">{t.common.description}</Label>
               <Textarea
                 id="description"
@@ -344,6 +283,23 @@ export function SpeakerProfileFormDialog({
                     ) : null}
                   </div>
                 </div>
+
+                <div className="md:col-span-1 space-y-2">
+                  <Controller
+                    control={control}
+                    name={`speakers.${index}.voice_model`}
+                    render={({ field }) => (
+                      <ModelSelector
+                        label="Voice Model Override (Optional)"
+                        modelType="text_to_speech"
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        placeholder="Inherit from Profile"
+                      />
+                    )}
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor={`speaker-backstory-${index}`}>{t.podcasts.backstory} *</Label>
                   <Textarea

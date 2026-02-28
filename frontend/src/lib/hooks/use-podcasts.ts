@@ -435,3 +435,16 @@ export function useGeneratePodcast() {
     },
   })
 }
+
+export function useLanguages() {
+  const query = useQuery({
+    queryKey: QUERY_KEYS.languages,
+    queryFn: podcastsApi.listLanguages,
+    staleTime: 24 * 60 * 60 * 1000, // 24 hours
+  })
+
+  return {
+    ...query,
+    languages: query.data ?? [],
+  }
+}

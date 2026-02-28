@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Loader2, UploadCloud, FileAudio, FileText, Play, Download } from 'lucide-react'
 import { useToast } from '@/lib/hooks/use-toast'
+import { Progress } from "@/components/ui/progress"
 
 export default function ExpressPage() {
   const { toast } = useToast()
@@ -19,6 +20,8 @@ export default function ExpressPage() {
   
   // State for processing and result
   const [isGenerating, setIsGenerating] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [statusMessage, setStatusMessage] = useState("")
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   
   // Fake Voice Data (MVP requirement to use hardcoded voices for now)
@@ -31,9 +34,48 @@ export default function ExpressPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setFile(e.target.files[0])
-      setAudioUrl(null) // Reset audio if file changes
+      setAudioUrl(null)
+      setProgress(0)
+      setStatusMessage("")
     }
   }
+
+  const startPolling = (jobId: string) => {
+    const pollInterval = window.setInterval(async () => {
+      try {
+        const response = await fetch(`/api/express/jobs/${jobId}`);
+        if (!response.ok) {
+          throw new Error("Failed to check job status");
+        }
+        
+        const data = await response.json();
+        
+        if (data.status === "completed") {
+          window.clearInterval(pollInterval);
+          setIsGenerating(false);
+          setAudioUrl(data.result.audio_url);
+          setProgress(100);
+          setStatusMessage("Audio generated successfully!");
+          toast({ title: 'Success!', description: 'Audio generated successfully.' });
+        } else if (data.status === "failed") {
+          window.clearInterval(pollInterval);
+          setIsGenerating(false);
+          setProgress(0);
+          throw new Error(data.error_message || "Generation failed");
+        } else {
+          // Status is in progress or submitted
+          const progressVal = data.progress?.percentage || 0;
+          setProgress(progressVal);
+          setStatusMessage(data.progress?.message || "Processing in background...");
+        }
+      } catch (error: Error | unknown) {
+        window.clearInterval(pollInterval);
+        setIsGenerating(false);
+        const errorMsg = error instanceof Error ? error.message : "An unknown error occurred.";
+        toast({ title: 'Error', description: errorMsg, variant: 'destructive' })
+      }
+    }, 1500); // Poll every 1.5 seconds
+  };
 
   const handleGenerate = async () => {
     if (!file) {
@@ -46,6 +88,8 @@ export default function ExpressPage() {
     }
     
     setIsGenerating(true)
+    setProgress(5)
+    setStatusMessage("Uploading file...")
     setAudioUrl(null)
     
     try {
@@ -65,17 +109,18 @@ export default function ExpressPage() {
       }
 
       const data = await response.json()
-      setAudioUrl(data.audio_url)
       
-      toast({ 
-        title: 'Success!', 
-        description: data.message || 'Audio generated successfully.',
-      })
+      if (data.job_id) {
+        startPolling(data.job_id);
+      } else {
+        throw new Error("No job ID returned from server")
+      }
+      
     } catch (error: unknown) {
+      setIsGenerating(false)
+      setProgress(0)
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       toast({ title: 'Error', description: errorMessage, variant: 'destructive' })
-    } finally {
-      setIsGenerating(false)
     }
   }
 
@@ -123,7 +168,7 @@ export default function ExpressPage() {
               </div>
 
               {/* File Upload Area */}
-              <div className="space-y-2">
+              <div className="space-y-2 relative">
                  <Label htmlFor="express-file">Upload File</Label>
                  <div className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center bg-muted/20 hover:bg-muted/50 transition-colors cursor-pointer relative">
                     <input 
@@ -160,6 +205,20 @@ export default function ExpressPage() {
                 </Select>
               </div>
 
+              {/* Progress Bar (Visible while generating) */}
+              {isGenerating && (
+                <div className="space-y-2 animate-in fade-in duration-300 mt-4 p-4 border rounded-lg bg-muted/20">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      {statusMessage}
+                    </span>
+                    <span className="text-muted-foreground font-medium">{Math.round(progress)}%</span>
+                  </div>
+                  <Progress value={progress} className="h-2" />
+                </div>
+              )}
+
               {/* Audio Result Player */}
               {audioUrl && (
                 <div className="mt-6 p-4 border rounded-lg bg-muted/30 space-y-4">
@@ -185,7 +244,7 @@ export default function ExpressPage() {
                 {isGenerating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
+                    Generating in background...
                   </>
                 ) : (
                   'Generate Audio'

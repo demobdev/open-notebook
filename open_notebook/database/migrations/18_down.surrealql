@@ -1,0 +1,5 @@
+-- Migration 18 Down: Revert model registry fields in podcast profiles
+REMOVE FIELD outline_llm ON TABLE episode_profile;
+REMOVE FIELD transcript_llm ON TABLE episode_profile;
+REMOVE FIELD language ON TABLE episode_profile;
+REMOVE FIELD voice_model ON TABLE speaker_profile;

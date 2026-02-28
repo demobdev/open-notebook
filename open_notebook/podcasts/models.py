@@ -19,14 +19,21 @@ class EpisodeProfile(ObjectModel):
     name: str = Field(..., description="Unique profile name")
     description: Optional[str] = Field(None, description="Profile description")
     speaker_config: str = Field(..., description="Reference to speaker profile name")
-    outline_provider: str = Field(..., description="AI provider for outline generation")
-    outline_model: str = Field(..., description="AI model for outline generation")
-    transcript_provider: str = Field(
-        ..., description="AI provider for transcript generation"
+    outline_llm: Optional[str] = Field(None, description="Model record ID for outline")
+    transcript_llm: Optional[str] = Field(
+        None, description="Model record ID for transcript"
     )
-    transcript_model: str = Field(..., description="AI model for transcript generation")
+    language: Optional[str] = Field(None, description="Podcast language code (BCP 47)")
     default_briefing: str = Field(..., description="Default briefing template")
     num_segments: int = Field(default=5, description="Number of podcast segments")
+
+    # Legacy fields (for migration)
+    outline_provider: Optional[str] = Field(None, description="Legacy outline provider")
+    outline_model: Optional[str] = Field(None, description="Legacy outline model")
+    transcript_provider: Optional[str] = Field(
+        None, description="Legacy transcript provider"
+    )
+    transcript_model: Optional[str] = Field(None, description="Legacy transcript model")
 
     @field_validator("num_segments")
     @classmethod
@@ -34,6 +41,18 @@ class EpisodeProfile(ObjectModel):
         if not 3 <= v <= 20:
             raise ValueError("Number of segments must be between 3 and 20")
         return v
+
+    async def resolve_outline_config(self):
+        """Resolve outline model to provider, name and credentials"""
+        if not self.outline_llm:
+            return None, None, None
+        return await _resolve_model_config(str(self.outline_llm))
+
+    async def resolve_transcript_config(self):
+        """Resolve transcript model to provider, name and credentials"""
+        if not self.transcript_llm:
+            return None, None, None
+        return await _resolve_model_config(str(self.transcript_llm))
 
     @classmethod
     async def get_by_name(cls, name: str) -> Optional["EpisodeProfile"]:
@@ -57,13 +76,14 @@ class SpeakerProfile(ObjectModel):
 
     name: str = Field(..., description="Unique profile name")
     description: Optional[str] = Field(None, description="Profile description")
-    tts_provider: str = Field(
-        ..., description="TTS provider (openai, elevenlabs, etc.)"
-    )
-    tts_model: str = Field(..., description="TTS model name")
+    voice_model: Optional[str] = Field(None, description="Model record ID for TTS")
     speakers: List[Dict[str, Any]] = Field(
         ..., description="Array of speaker configurations"
     )
+
+    # Legacy fields (for migration)
+    tts_provider: Optional[str] = Field(None, description="Legacy TTS provider")
+    tts_model: Optional[str] = Field(None, description="Legacy TTS model")
 
     @field_validator("speakers")
     @classmethod
@@ -78,6 +98,12 @@ class SpeakerProfile(ObjectModel):
                     raise ValueError(f"Speaker missing required field: {field}")
         return v
 
+    async def resolve_tts_config(self):
+        """Resolve TTS model to provider, name and credentials"""
+        if not self.voice_model:
+            return None, None, None
+        return await _resolve_model_config(str(self.voice_model))
+
     @classmethod
     async def get_by_name(cls, name: str) -> Optional["SpeakerProfile"]:
         """Get speaker profile by name"""
@@ -87,6 +113,28 @@ class SpeakerProfile(ObjectModel):
         if result:
             return cls(**result[0])
         return None
+
+
+async def _resolve_model_config(model_id: str):
+    """Resolve model record ID to provider, name and credentials"""
+    try:
+        from open_notebook.models.models import Model
+
+        model = await Model.get(model_id)
+        if not model:
+            raise ValueError(f"Model '{model_id}' not found in registry")
+
+        # Get credentials for this provider
+        from open_notebook.models.credentials import get_credentials
+
+        creds = await get_credentials(model.provider)
+
+        return model.provider, model.name, (creds.data if creds else {})
+    except Exception as e:
+        from loguru import logger
+
+        logger.error(f"Failed to resolve model config for {model_id}: {e}")
+        raise
 
 
 class PodcastEpisode(ObjectModel):

@@ -62,73 +62,69 @@ async def generate_podcast_command(
     start_time = time.time()
 
     try:
-        # Provision API keys from database into environment variables
-        # podcast-creator and LLM calls read keys from env (OPENAI, GOOGLE, GROQ, ELEVENLABS, etc.)
-        import os
-
-        from open_notebook.ai.key_provider import provision_provider_keys
-
-        await provision_provider_keys("openai")
-        await provision_provider_keys("elevenlabs")
-        await provision_provider_keys("google")
-        await provision_provider_keys("groq")
-
-        logger.info(
-            f"Starting podcast generation for episode: {input_data.episode_name}"
+        # 0. Resolve credentials and models for all relevant profiles
+        # This mapping ensures podcast-creator receives the resolved string names
+        # but the actual keys are injected into the environment.
+        outline_provider, outline_name, outline_creds = (
+            await episode_profile.resolve_outline_config()
         )
-        logger.info(f"Using episode profile: {input_data.episode_profile}")
+        (
+            transcript_provider,
+            transcript_name,
+            transcript_creds,
+        ) = await episode_profile.resolve_transcript_config()
+        tts_provider, tts_name, tts_creds = await speaker_profile.resolve_tts_config()
 
-        # 1. Load Episode and Speaker profiles from SurrealDB
-        episode_profile = await EpisodeProfile.get_by_name(input_data.episode_profile)
-        if not episode_profile:
+        # Merge credentials into environment for podcast-creator compatibility
+        for creds in [outline_creds, transcript_creds, tts_creds]:
+            if not creds:
+                continue
+            for k, v in creds.items():
+                if v:
+                    os.environ[k] = v
+
+        # Fail fast if required models are missing (for newly created profiles)
+        if not outline_provider or not transcript_provider or not tts_provider:
             raise ValueError(
-                f"Episode profile '{input_data.episode_profile}' not found"
+                "Episode or Speaker profile is missing model configuration. "
+                "Please configure models in Settings → Podcasts Profiles."
             )
 
-        # Use speaker from input (allows override at generation time)
-        speaker_profile = await SpeakerProfile.get_by_name(
-            input_data.speaker_profile
-        )
-        if not speaker_profile:
-            raise ValueError(
-                f"Speaker profile '{input_data.speaker_profile}' not found"
-            )
+        # 1. Load profiles again for modification (dump and override)
+        ep_data = episode_profile.model_dump()
+        ep_data["outline_provider"] = outline_provider
+        ep_data["outline_model"] = outline_name
+        ep_data["transcript_provider"] = transcript_provider
+        ep_data["transcript_model"] = transcript_name
 
-        logger.info(f"Loaded episode profile: {episode_profile.name}")
-        logger.info(f"Loaded speaker profile: {speaker_profile.name}")
+        sp_data = speaker_profile.model_dump()
+        sp_data["tts_provider"] = tts_provider
+        sp_data["tts_model"] = tts_name
 
-        # Fail fast if LLM provider's API key is missing (outline/transcript use these)
-        outline_provider = (episode_profile.outline_provider or "").lower()
-        transcript_provider = (episode_profile.transcript_provider or "").lower()
-        def _has_google_key():
-            return bool(os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY"))
+        # Resolve per-speaker overrides if present
+        from open_notebook.podcasts.models import _resolve_model_config
 
-        for provider, label, has_key in [
-            ("google", "Google (Gemini)", _has_google_key),
-            ("groq", "Groq", lambda: bool(os.environ.get("GROQ_API_KEY"))),
-        ]:
-            if outline_provider == provider or transcript_provider == provider:
-                if not has_key():
-                    env_hint = "GOOGLE_API_KEY or GEMINI_API_KEY" if provider == "google" else "GROQ_API_KEY"
-                    raise ValueError(
-                        f"{label} API key not found. Set {env_hint} in your .env.local (or add a {label} credential in Settings → API Keys), "
-                        "then restart the API/worker so it picks up the new env."
+        for speaker in sp_data.get("speakers", []):
+            if speaker.get("voice_model"):
+                try:
+                    p, n, c = await _resolve_model_config(speaker["voice_model"])
+                    speaker["tts_provider"] = p
+                    speaker["tts_model"] = n
+                    # Merge speaker-specific credentials too
+                    if c:
+                        for k, v in c.items():
+                            os.environ[k] = v
+                except Exception:
+                    logger.warning(
+                        f"Failed to resolve override model for speaker {speaker.get('name')}"
                     )
-
-        # Fail fast if TTS provider's API key is missing
-        tts_provider = (speaker_profile.tts_provider or "").lower()
-        if tts_provider == "elevenlabs" and not os.environ.get("ELEVENLABS_API_KEY"):
-            raise ValueError(
-                "ElevenLabs API key not configured. Add an ElevenLabs credential in "
-                "Settings → API Keys with a valid API key. Your speaker profile uses ElevenLabs TTS."
-            )
 
         # 2b. Validate configuration before proceeding
         from open_notebook.podcasts.validation import validate_podcast_config
 
         validation = validate_podcast_config(
-            episode_profile.model_dump(),
-            speaker_profile.model_dump(),
+            ep_data,
+            sp_data,
         )
         if validation.has_errors:
             error_detail = validation.error_summary()
@@ -139,17 +135,8 @@ async def generate_podcast_command(
         for w in validation.warnings:
             logger.warning(f"Config warning: [{w.field}] {w.message}")
 
-        # 3. Load all profiles and configure podcast-creator
-        episode_profiles = await repo_query("SELECT * FROM episode_profile")
-        speaker_profiles = await repo_query("SELECT * FROM speaker_profile")
-
-        # Transform the surrealdb array into a dictionary for podcast-creator
-        episode_profiles_dict = {
-            profile["name"]: profile for profile in episode_profiles
-        }
-        speaker_profiles_dict = {
-            profile["name"]: profile for profile in speaker_profiles
-        }
+        episode_profiles_dict = {episode_profile.name: ep_data}
+        speaker_profiles_dict = {speaker_profile.name: sp_data}
 
         # 4. Generate briefing
         briefing = episode_profile.default_briefing
@@ -159,8 +146,8 @@ async def generate_podcast_command(
         # Create the a record for the episose and associate with the ongoing command
         episode = PodcastEpisode(
             name=input_data.episode_name,
-            episode_profile=full_model_dump(episode_profile.model_dump()),
-            speaker_profile=full_model_dump(speaker_profile.model_dump()),
+            episode_profile=full_model_dump(ep_data),
+            speaker_profile=full_model_dump(sp_data),
             command=ensure_record_id(input_data.execution_context.command_id)
             if input_data.execution_context
             else None,

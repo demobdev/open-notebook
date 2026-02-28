@@ -6,6 +6,7 @@ import {
   SpeakerProfile,
   PodcastGenerationRequest,
   PodcastGenerationResponse,
+  Language,
 } from '@/lib/types/podcasts'
 
 export type EpisodeProfileInput = Omit<EpisodeProfile, 'id'>
@@ -127,6 +128,10 @@ export const podcastsApi = {
       episode_profile: episodeProfile,
       speaker_profile: speakerProfile,
     })
+    return response.data
+  },
+  listLanguages: async () => {
+    const response = await apiClient.get<Language[]>('/languages')
     return response.data
   },
 }

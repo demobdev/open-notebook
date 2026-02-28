@@ -1,0 +1,21 @@
+-- Migration 18: Add model registry fields to podcast profiles
+-- Episode Profile: Add model registry fields and language
+DEFINE FIELD outline_llm ON TABLE episode_profile TYPE option<record<model>>;
+DEFINE FIELD transcript_llm ON TABLE episode_profile TYPE option<record<model>>;
+DEFINE FIELD language ON TABLE episode_profile TYPE option<string>;
+
+-- Make legacy Episode Profile fields optional
+DEFINE FIELD outline_provider ON TABLE episode_profile TYPE option<string>;
+DEFINE FIELD outline_model ON TABLE episode_profile TYPE option<string>;
+DEFINE FIELD transcript_provider ON TABLE episode_profile TYPE option<string>;
+DEFINE FIELD transcript_model ON TABLE episode_profile TYPE option<string>;
+
+-- Speaker Profile: Add model registry field for TTS
+DEFINE FIELD voice_model ON TABLE speaker_profile TYPE option<record<model>>;
+
+-- Make legacy Speaker Profile fields optional
+DEFINE FIELD tts_provider ON TABLE speaker_profile TYPE option<string>;
+DEFINE FIELD tts_model ON TABLE speaker_profile TYPE option<string>;
+
+-- Add voice_model property support inside speaker objects (per-speaker override support)
+-- Note: This is an object property inside the 'speakers' array
