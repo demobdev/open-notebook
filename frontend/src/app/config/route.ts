@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
 /**
  * Runtime Configuration Endpoint
@@ -22,7 +22,7 @@ import { NextRequest, NextResponse } from 'next/server'
  *
  * This allows the same Docker image to work in different deployment scenarios.
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   // Priority 1: Check if API_URL is explicitly set
   const envApiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL
 
@@ -32,33 +32,12 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  // Priority 2: Auto-detect from request headers
-  try {
-    // Get the protocol (http or https)
-    // Check X-Forwarded-Proto first (for reverse proxies), then fallback to request scheme
-    const proto = request.headers.get('x-forwarded-proto') ||
-                  request.nextUrl.protocol.replace(':', '') ||
-                  'http'
-
-    // Get the host header (includes port if non-standard)
-    const hostHeader = request.headers.get('host')
-
-    if (hostHeader) {
-      // Extract just the hostname (remove port if present)
-      const hostname = hostHeader.split(':')[0]
-
-      // Construct the API URL with port 5055
-      const apiUrl = `${proto}://${hostname}:5055`
-
-      console.log(`[runtime-config] Auto-detected API URL: ${apiUrl} (proto=${proto}, host=${hostHeader})`)
-
-      return NextResponse.json({
-        apiUrl,
-      })
-    }
-  } catch (error) {
-    console.error('[runtime-config] Auto-detection failed:', error)
-  }
+  // Priority 2: In production environments like Railway, fall back to relative path proxying
+  // It relies on Next.js API rewrites in next.config.ts to route correctly.
+  console.log('[runtime-config] Using smart default relative path.')
+  return NextResponse.json({
+    apiUrl: '',
+  })
 
   // Priority 3: Fallback to localhost
   console.log('[runtime-config] Using fallback: http://localhost:5055')
