@@ -126,6 +126,7 @@ _CODE_BLOCK_PATTERN = re.compile(r"```(?:json)?\s*\n?(.*?)```", re.DOTALL)
 def extract_json_from_model_output(content: str) -> str:
     """
     Prepare LLM output for JSON parsing: strip <think> blocks and optional markdown code fences.
+    Also handles common model mistakes where the root object wrapper is missing.
 
     Use this before passing model output to a JSON/Pydantic parser to avoid
     "Invalid json output" when the model wraps JSON in <think> or in ```json ... ```.
@@ -136,14 +137,58 @@ def extract_json_from_model_output(content: str) -> str:
     Returns:
         String suitable for JSON parsing (thinking removed, code block unwrapped).
     """
+    import json
+
     if not isinstance(content, str) or not content.strip():
         return content if isinstance(content, str) else ""
+
     _, cleaned = parse_thinking_content(content)
     cleaned = cleaned.strip()
+
+    # 1. Extract from code block if present
     match = _CODE_BLOCK_PATTERN.search(cleaned)
     if match:
-        return match.group(1).strip()
-    return cleaned
+        json_str = match.group(1).strip()
+    else:
+        json_str = cleaned
+
+    # 2. Heuristic Fixups for common model "helpfulness" errors
+    # (e.g. returning [item, item] instead of {"segments": [item, item]})
+    try:
+        data = json.loads(json_str)
+
+        # Fixup: List returned instead of object with "segments" or "transcript"
+        if isinstance(data, list) and len(data) > 0:
+            first_item = data[0]
+            if isinstance(first_item, dict):
+                # Is it an outline?
+                if all(k in first_item for k in ["name", "description", "size"]):
+                    return json.dumps({"segments": data})
+                # Is it a transcript?
+                if all(k in first_item for k in ["speaker", "dialogue"]):
+                    return json.dumps({"transcript": data})
+
+        # Fixup: Single segment object returned instead of Outline
+        if isinstance(data, dict):
+            # If it has segment fields but NO "segments" key, wrap it
+            if (
+                all(k in data for k in ["name", "description", "size"])
+                and "segments" not in data
+            ):
+                return json.dumps({"segments": [data]})
+            # If it has dialogue fields but NO "transcript" key, wrap it
+            if (
+                all(k in data for k in ["speaker", "dialogue"])
+                and "transcript" not in data
+            ):
+                return json.dumps({"transcript": [data]})
+
+    except Exception:
+        # If parsing fails here, just return the original string and let the
+        # actual parser downstream handle the error with its own logic.
+        pass
+
+    return json_str
 
 
 def extract_text_content(content) -> str:

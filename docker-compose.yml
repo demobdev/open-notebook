@@ -13,6 +13,13 @@ services:
     pull_policy: always
 
   open_notebook:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_live_Y2xlcmsuYXVkaW9wcmlzbS5hcHAk
+        NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
+        NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
     image: lfnovo/open_notebook:local
     ports:
       - "8502:8502"  # Web UI
@@ -21,6 +28,12 @@ services:
       - .env.local
     volumes:
       - ./notebook_data:/app/data
+      - ./api:/app/api
+      - ./open_notebook:/app/open_notebook
+      - ./commands:/app/commands
+      - ./scripts:/app/scripts
+      - ./.env.local:/app/.env
+      - ./supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
     depends_on:
       - surrealdb
     restart: always

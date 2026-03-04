@@ -24,7 +24,7 @@ import { NextResponse } from 'next/server'
  */
 export async function GET() {
   // Priority 1: Check if API_URL is explicitly set
-  const envApiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL
+  const envApiUrl = process.env.API_URL
 
   if (envApiUrl) {
     return NextResponse.json({

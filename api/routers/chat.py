@@ -13,6 +13,7 @@ from open_notebook.database.repository import ensure_record_id, repo_query
 from open_notebook.domain.notebook import ChatSession, Note, Notebook, Source
 from open_notebook.exceptions import (
     NotFoundError,
+    RateLimitError,
 )
 from open_notebook.graphs.chat import graph as chat_graph
 from open_notebook.utils.graph_utils import get_session_message_count
@@ -416,8 +417,9 @@ async def execute_chat(request: Request, body: ExecuteChatRequest):
             )
 
         return ExecuteChatResponse(session_id=body.session_id, messages=messages)
-    except NotFoundError:
-        raise HTTPException(status_code=404, detail="Session not found")
+    except RateLimitError:
+        # Re-raise RateLimitError so the global exception handler can return 429
+        raise
     except Exception as e:
         # Log detailed error with context for debugging
         logger.error(

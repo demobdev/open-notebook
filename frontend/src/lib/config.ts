@@ -109,7 +109,8 @@ async function fetchConfig(): Promise<AppConfig> {
                 ', build-time=' + (envApiUrl ? '✅' : '❌') +
                 ', smart-default=' + (!runtimeApiUrl && !envApiUrl ? '✅' : '❌'))
   }
-
+  console.log('🔧 [Config] Final API URL:', baseUrl || '(relative)')
+  
   try {
     if (isDev) console.log('🔧 [Config] Fetching backend config from:', `${baseUrl}/api/config`)
     // Try to fetch runtime config from backend API

@@ -1,14 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { AppShell } from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, UploadCloud, FileAudio, FileText, Play, Download } from 'lucide-react'
+import { Loader2, UploadCloud, FileAudio, FileText, Play, Download, User } from 'lucide-react'
 import { useToast } from '@/lib/hooks/use-toast'
 import { Progress } from "@/components/ui/progress"
+import { useSpeakerProfiles } from '@/lib/hooks/use-podcasts'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+// Fake Voice Data (Standard ElevenLabs voices)
+const standardVoices = [
+  { id: 'XB0fDUnXU5sweG83Nnwe', name: 'Charlotte', description: 'Calm, Professional' },
+  { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', description: 'Energetic, Conversational' },
+  { id: 'pNInz6obpgDQGcFmaJcg', name: 'Adam', description: 'Deep, Authoritative' },
+]
 
 export default function ExpressPage() {
   const { toast } = useToast()
@@ -24,12 +32,34 @@ export default function ExpressPage() {
   const [statusMessage, setStatusMessage] = useState("")
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   
-  // Fake Voice Data (MVP requirement to use hardcoded voices for now)
-  const availableVoices = [
-    { id: 'XB0fDUnXU5sweG83Nnwe', name: 'Charlotte (Calm, Professional)' },
-    { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel (Energetic, Conversational)' },
-    { id: 'pNInz6obpgDQGcFmaJcg', name: 'Adam (Deep, Authoritative)' },
-  ]
+  // Fetch real speaker profiles from the backend
+  const { speakerProfiles } = useSpeakerProfiles()
+  
+
+  // Consolidate standard and custom voices
+  const allVoices = useMemo(() => {
+    // 1. Map standard voices
+    const standard = standardVoices.map(v => ({
+      id: v.id,
+      name: v.name,
+      description: v.description,
+      isCustom: false
+    }))
+
+    // 2. Extract custom voices from ElevenLabs speaker profiles
+    const custom = (speakerProfiles || [])
+      .filter(profile => profile.tts_provider === 'elevenlabs')
+      .flatMap(profile => 
+        profile.speakers.map(speaker => ({
+          id: speaker.voice_id,
+          name: speaker.name,
+          description: `Custom: ${profile.name}`,
+          isCustom: true
+        }))
+      )
+
+    return { standard, custom }
+  }, [speakerProfiles])
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -196,11 +226,29 @@ export default function ExpressPage() {
                     <SelectValue placeholder="Choose a voice model..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableVoices.map(voice => (
-                      <SelectItem key={voice.id} value={voice.id}>
-                        {voice.name}
-                      </SelectItem>
-                    ))}
+                    <SelectGroup>
+                      <SelectLabel>Standard Voices</SelectLabel>
+                      {allVoices.standard.map(voice => (
+                        <SelectItem key={voice.id} value={voice.id}>
+                          {voice.name} <span className="text-muted-foreground text-xs ml-1">({voice.description})</span>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                    
+                    {allVoices.custom.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel>Your Custom Voices</SelectLabel>
+                        {allVoices.custom.map((voice, idx) => (
+                          <SelectItem key={`${voice.id}-${idx}`} value={voice.id}>
+                            <div className="flex items-center gap-2">
+                              <User className="h-3 w-3 text-primary" />
+                              <span>{voice.name}</span>
+                              <span className="text-muted-foreground text-xs">({voice.description})</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
