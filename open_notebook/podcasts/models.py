@@ -19,8 +19,8 @@ class EpisodeProfile(ObjectModel):
     name: str = Field(..., description="Unique profile name")
     description: Optional[str] = Field(None, description="Profile description")
     speaker_config: str = Field(..., description="Reference to speaker profile name")
-    outline_llm: Optional[str] = Field(None, description="Model record ID for outline")
-    transcript_llm: Optional[str] = Field(
+    outline_llm: Optional[Union[str, RecordID]] = Field(None, description="Model record ID for outline")
+    transcript_llm: Optional[Union[str, RecordID]] = Field(
         None, description="Model record ID for transcript"
     )
     language: Optional[str] = Field(None, description="Podcast language code (BCP 47)")
@@ -35,11 +35,20 @@ class EpisodeProfile(ObjectModel):
     )
     transcript_model: Optional[str] = Field(None, description="Legacy transcript model")
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     @field_validator("num_segments")
     @classmethod
     def validate_segments(cls, v):
         if not 3 <= v <= 20:
             raise ValueError("Number of segments must be between 3 and 20")
+        return v
+
+    @field_validator("outline_llm", "transcript_llm", mode="before")
+    @classmethod
+    def parse_llm_records(cls, v):
+        if isinstance(v, str) and v:
+            return ensure_record_id(v)
         return v
 
     async def resolve_outline_config(self):
@@ -53,6 +62,20 @@ class EpisodeProfile(ObjectModel):
         if not self.transcript_llm:
             return None, None, None
         return await _resolve_model_config(str(self.transcript_llm))
+
+    def _prepare_save_data(self) -> dict:
+        """Override to ensure LLM fields are RecordID format for database"""
+        from loguru import logger
+        data = super()._prepare_save_data()
+        
+        for field in ["outline_llm", "transcript_llm"]:
+            val = data.get(field)
+            if val and isinstance(val, str) and ":" in val:
+                logger.debug(f"Converting {field} to RecordID: {val}")
+                data[field] = ensure_record_id(val)
+            elif val:
+                logger.debug(f"Field {field} is already {type(val)}: {val}")
+        return data
 
     @classmethod
     async def get_by_name(cls, name: str) -> Optional["EpisodeProfile"]:
@@ -76,18 +99,29 @@ class SpeakerProfile(ObjectModel):
 
     name: str = Field(..., description="Unique profile name")
     description: Optional[str] = Field(None, description="Profile description")
-    voice_model: Optional[str] = Field(None, description="Model record ID for TTS")
+    voice_model: Optional[Union[str, RecordID]] = Field(None, description="Model record ID for TTS")
     speakers: List[Dict[str, Any]] = Field(
         ..., description="Array of speaker configurations"
     )
 
     # Legacy fields (for migration)
     tts_provider: Optional[str] = Field(None, description="Legacy TTS provider")
-    tts_model: Optional[str] = Field(None, description="Legacy TTS model")
+    tts_model: Optional[str] = Field(None, description="Legacy tts model")
 
-    @field_validator("speakers")
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    @field_validator("voice_model", mode="before")
+    @classmethod
+    def parse_voice_model(cls, v):
+        if isinstance(v, str) and v:
+            return ensure_record_id(v)
+        return v
+
+    @field_validator("speakers", mode="before")
     @classmethod
     def validate_speakers(cls, v):
+        if not isinstance(v, list):
+            return v
         if not 1 <= len(v) <= 4:
             raise ValueError("Must have between 1 and 4 speakers")
 
@@ -96,6 +130,9 @@ class SpeakerProfile(ObjectModel):
             for field in required_fields:
                 if field not in speaker:
                     raise ValueError(f"Speaker missing required field: {field}")
+            # Ensure voice_id is a RecordID if it looks like one
+            if "voice_id" in speaker and speaker["voice_id"] and ":" in str(speaker["voice_id"]):
+                 speaker["voice_id"] = ensure_record_id(speaker["voice_id"])
         return v
 
     async def resolve_tts_config(self):
@@ -114,22 +151,42 @@ class SpeakerProfile(ObjectModel):
             return cls(**result[0])
         return None
 
+    def _prepare_save_data(self) -> dict:
+        """Override to ensure voice_model and speakers are RecordID format for database"""
+        from loguru import logger
+        data = super()._prepare_save_data()
+        
+        vm = data.get("voice_model")
+        if vm and isinstance(vm, str) and ":" in vm:
+            logger.debug(f"Converting voice_model to RecordID: {vm}")
+            data["voice_model"] = ensure_record_id(vm)
+            
+        if data.get("speakers"):
+            for i, speaker in enumerate(data["speakers"]):
+                vid = speaker.get("voice_id")
+                if vid and isinstance(vid, str) and ":" in vid:
+                    logger.debug(f"Converting speaker {i} voice_id to RecordID: {vid}")
+                    speaker["voice_id"] = ensure_record_id(vid)
+        return data
+
 
 async def _resolve_model_config(model_id: str):
     """Resolve model record ID to provider, name and credentials"""
     try:
-        from open_notebook.models.models import Model
+        from open_notebook.ai.models import Model
 
         model = await Model.get(model_id)
         if not model:
             raise ValueError(f"Model '{model_id}' not found in registry")
 
         # Get credentials for this provider
-        from open_notebook.models.credentials import get_credentials
+        from open_notebook.domain.credential import Credential
 
-        creds = await get_credentials(model.provider)
+        creds = await Credential.get_by_provider(model.provider)
+        # credentials should be extracted from the first valid credential
+        creds_data = creds[0].to_esperanto_config() if creds else {}
 
-        return model.provider, model.name, (creds.data if creds else {})
+        return model.provider, model.name, creds_data
     except Exception as e:
         from loguru import logger
 

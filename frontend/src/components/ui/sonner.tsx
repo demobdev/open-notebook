@@ -17,11 +17,15 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-bg": "var(--popover)",
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
-          "--description-color": "var(--muted-foreground)",
+          "--description-color": effectiveTheme === 'light' ? "var(--foreground)" : "var(--muted-foreground)",
           "--success-bg": "var(--popover)",
           "--success-text": "var(--popover-foreground)",
           "--success-border": "var(--border)",
-          "--success-description-color": "var(--muted-foreground)",
+          "--success-description-color": effectiveTheme === 'light' ? "var(--foreground)" : "var(--muted-foreground)",
+          "--error-bg": "var(--popover)",
+          "--error-text": "var(--popover-foreground)",
+          "--error-border": "var(--border)",
+          "--error-description-color": effectiveTheme === 'light' ? "var(--foreground)" : "var(--muted-foreground)",
         } as React.CSSProperties
       }
       {...props}

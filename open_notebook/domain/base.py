@@ -138,7 +138,7 @@ class ObjectModel(BaseModel):
         command after calling super().save().
         """
         try:
-            self.model_validate(self.model_dump(), strict=True)
+            self.model_validate(self.model_dump())
             data = self._prepare_save_data()
             data["updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 

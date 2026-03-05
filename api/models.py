@@ -614,6 +614,7 @@ class CredentialResponse(BaseModel):
     location: Optional[str] = None
     credentials_path: Optional[str] = None
     has_api_key: bool = False
+    has_decryption_error: bool = False
     created: str
     updated: str
     model_count: int = 0

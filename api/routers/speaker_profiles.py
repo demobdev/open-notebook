@@ -26,7 +26,7 @@ def _profile_to_response(profile: SpeakerProfile) -> SpeakerProfileResponse:
         id=str(profile.id),
         name=profile.name,
         description=profile.description or "",
-        voice_model=profile.voice_model,
+        voice_model=str(profile.voice_model) if profile.voice_model else None,
         speakers=profile.speakers,
         tts_provider=profile.tts_provider,
         tts_model=profile.tts_model,

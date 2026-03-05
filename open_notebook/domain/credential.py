@@ -63,6 +63,7 @@ class Credential(ObjectModel):
     project: Optional[str] = None
     location: Optional[str] = None
     credentials_path: Optional[str] = None
+    has_decryption_error: bool = False
 
     def to_esperanto_config(self) -> Dict[str, Any]:
         """
@@ -124,8 +125,16 @@ class Credential(ObjectModel):
                 if isinstance(instance.api_key, SecretStr)
                 else instance.api_key
             )
-            decrypted = decrypt_value(raw)
-            object.__setattr__(instance, "api_key", SecretStr(decrypted))
+            try:
+                decrypted = decrypt_value(raw)
+                object.__setattr__(instance, "api_key", SecretStr(decrypted))
+            except ValueError as e:
+                if "Decryption failed" in str(e):
+                    logger.warning(f"Decryption failed for credential {id}: {e}")
+                    object.__setattr__(instance, "api_key", None)
+                    object.__setattr__(instance, "has_decryption_error", True)
+                else:
+                    raise
         return instance
 
     @classmethod
@@ -139,8 +148,16 @@ class Credential(ObjectModel):
                     if isinstance(instance.api_key, SecretStr)
                     else instance.api_key
                 )
-                decrypted = decrypt_value(raw)
-                object.__setattr__(instance, "api_key", SecretStr(decrypted))
+                try:
+                    decrypted = decrypt_value(raw)
+                    object.__setattr__(instance, "api_key", SecretStr(decrypted))
+                except ValueError as e:
+                    if "Decryption failed" in str(e):
+                        logger.warning(f"Decryption failed for credential {instance.id}: {e}")
+                        object.__setattr__(instance, "api_key", None)
+                        object.__setattr__(instance, "has_decryption_error", True)
+                    else:
+                        raise
         return instances
 
     async def get_linked_models(self) -> list:
@@ -191,9 +208,22 @@ class Credential(ObjectModel):
     def _from_db_row(cls, row: dict) -> "Credential":
         """Create a Credential from a database row, decrypting api_key."""
         api_key_val = row.get("api_key")
+        has_error = False
         if api_key_val and isinstance(api_key_val, str):
-            decrypted = decrypt_value(api_key_val)
-            row["api_key"] = SecretStr(decrypted)
+            try:
+                decrypted = decrypt_value(api_key_val)
+                row["api_key"] = SecretStr(decrypted)
+            except ValueError as e:
+                if "Decryption failed" in str(e):
+                    logger.warning(f"Decryption failed for credential in row: {e}")
+                    row["api_key"] = None
+                    has_error = True
+                else:
+                    raise
         elif api_key_val is None:
             row["api_key"] = None
-        return cls(**row)
+            
+        instance = cls(**row)
+        if has_error:
+            object.__setattr__(instance, "has_decryption_error", True)
+        return instance

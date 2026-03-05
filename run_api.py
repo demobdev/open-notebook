@@ -7,7 +7,18 @@ import os
 import sys
 from pathlib import Path
 
+from pathlib import Path
+
+from dotenv import load_dotenv
+
 import uvicorn
+
+# Load environment variables from .env.local if it exists, otherwise fall back to .env
+env_local = Path(".env.local")
+if env_local.exists():
+    load_dotenv(dotenv_path=env_local)
+else:
+    load_dotenv()
 
 # Add the current directory to Python path so imports work
 current_dir = Path(__file__).parent

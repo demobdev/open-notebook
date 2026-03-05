@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { SignInButton, SignUpButton, SignedIn, SignedOut } from '@clerk/nextjs'
 
-import { Button } from '@/components/ui/button'
 export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-border transition-colors">
@@ -18,12 +18,26 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <Link href="/sign-in" className="cursor-pointer flex items-center h-full text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground">
-            Sign In
-          </Link>
-          <Link href="/sign-up" className="inline-flex h-[28px] items-center justify-center whitespace-nowrap rounded-full bg-[#3b82f6]/10 px-4 text-[13px] font-medium text-[#3b82f6] transition-colors hover:bg-[#3b82f6]/20 border border-[#3b82f6]/20 cursor-pointer">
-            Get Started
-          </Link>
+          <SignedOut>
+            <SignInButton mode="modal">
+              <button className="cursor-pointer flex items-center h-full text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground">
+                Sign In
+              </button>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <button className="inline-flex h-[28px] items-center justify-center whitespace-nowrap rounded-full bg-[#3b82f6]/10 px-4 text-[13px] font-medium text-[#3b82f6] transition-colors hover:bg-[#3b82f6]/20 border border-[#3b82f6]/20 cursor-pointer">
+                Get Started
+              </button>
+            </SignUpButton>
+          </SignedOut>
+          <SignedIn>
+            <Link 
+              href="/notebooks" 
+              className="inline-flex h-[28px] items-center justify-center whitespace-nowrap rounded-full bg-[#3b82f6]/10 px-4 text-[13px] font-medium text-[#3b82f6] transition-colors hover:bg-[#3b82f6]/20 border border-[#3b82f6]/20 cursor-pointer"
+            >
+              Go to Dashboard
+            </Link>
+          </SignedIn>
         </div>
       </div>
     </header>

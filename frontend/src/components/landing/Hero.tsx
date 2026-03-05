@@ -4,15 +4,18 @@ import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
+import { SignUpButton, SignedIn, SignedOut } from '@clerk/nextjs'
 import Threads from '@/components/Threads'
-
-import { Button } from '@/components/ui/button'
 
 import { TextWarp } from '@/components/ui/text-warp'
 
 export function Hero() {
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Avoid hydration mismatch by rendering default dark or null first, but to prevent layout shift we can just assume dark first
   const waveColor: [number, number, number] = mounted && resolvedTheme === 'light' ? [0, 0, 0] : [1, 1, 1]
@@ -49,13 +52,24 @@ export function Hero() {
           </p>
           
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center items-center w-full">
-            <Link href="/sign-up">
-              <span 
-                className="inline-flex items-center justify-center whitespace-nowrap h-11 rounded-full bg-foreground text-background hover:bg-foreground/90 px-8 text-[15px] font-medium cursor-pointer"
-              >
-                Get Started
-              </span>
-            </Link>
+            <SignedOut>
+              <SignUpButton mode="modal">
+                <span 
+                  className="inline-flex items-center justify-center whitespace-nowrap h-11 rounded-full bg-foreground text-background hover:bg-foreground/90 px-8 text-[15px] font-medium cursor-pointer"
+                >
+                  Get Started
+                </span>
+              </SignUpButton>
+            </SignedOut>
+            <SignedIn>
+              <Link href="/notebooks">
+                <span 
+                  className="inline-flex items-center justify-center whitespace-nowrap h-11 rounded-full bg-foreground text-background hover:bg-foreground/90 px-8 text-[15px] font-medium cursor-pointer"
+                >
+                  Go to Dashboard
+                </span>
+              </Link>
+            </SignedIn>
           </div>
           <p className="mt-4 text-[13px] text-foreground/40">
              Free to try • No credit card required.
